@@ -1,0 +1,152 @@
+.availability-page {
+  max-width: 1200px;
+}
+
+.availability-actions {
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Add form */
+.add-form-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.add-form-card h3 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.add-form-card .form-group label {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  font-size: 14px;
+}
+
+.add-form-card select,
+.add-form-card input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.add-form-card select:focus,
+.add-form-card input:focus {
+  outline: none;
+  border-color: var(--color-primary-light);
+}
+
+.add-form-card select option {
+  background: var(--bg-card);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+/* Weekly schedule */
+.weekly-schedule {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--spacing-sm);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-light);
+}
+
+.day-column {
+  min-width: 0;
+}
+
+.day-header {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-light);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.time-slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-height: 100px;
+}
+
+.time-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(212, 160, 60, 0.2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(212, 160, 60, 0.3);
+}
+
+.slot-time {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.delete-slot-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+
+.delete-slot-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--color-error-light);
+}
+
+.no-slots {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: var(--spacing-md) 0;
+}
+
+@media (max-width: 900px) {
+  .weekly-schedule {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .weekly-schedule {
+    grid-template-columns: 1fr;
+  }
+}
+

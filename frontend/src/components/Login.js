@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { login } from '../services/api';
 import './Login.css';
 
-function Login({ onNavigate }) {
+function Login({ onNavigate, onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,8 +36,10 @@ function Login({ onNavigate }) {
     try {
       const response = await login(email, password);
       if (response.success) {
-        // Navigate to home after successful login
-        onNavigate('home');
+        // Call auth context login with user data
+        if (onLoginSuccess) {
+          onLoginSuccess(response.data);
+        }
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
@@ -94,6 +96,7 @@ function Login({ onNavigate }) {
               placeholder="Enter your password"
               disabled={loading}
               required
+              autoComplete="current-password"
             />
           </div>
           

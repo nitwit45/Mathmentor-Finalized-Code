@@ -5,11 +5,30 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model."""
+    is_profile_complete = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ('id', 'email', 'role', 'first_name', 'last_name', 'created_at')
+        fields = ('id', 'email', 'role', 'first_name', 'last_name', 'full_name', 'is_profile_complete', 'created_at')
         read_only_fields = ('id', 'created_at')
+
+    def get_is_profile_complete(self, obj):
+        """Check if user has completed their profile."""
+        if obj.role == 'TUTOR':
+            try:
+                return obj.tutor_profile.is_profile_complete
+            except:
+                return False
+        elif obj.role == 'STUDENT':
+            try:
+                return obj.student_profile.is_profile_complete
+            except:
+                return False
+        return False
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip() or obj.email
 
 
 class SignUpSerializer(serializers.ModelSerializer):

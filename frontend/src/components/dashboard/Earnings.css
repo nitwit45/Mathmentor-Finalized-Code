@@ -1,0 +1,111 @@
+.earnings-page {
+  max-width: 900px;
+}
+
+.earnings-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.earnings-stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.earnings-stat-card .stat-icon {
+  font-size: 32px;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.earnings-stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary-light);
+}
+
+.earnings-stat-card .stat-label {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Transactions */
+.transactions-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.transactions-section h2 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 18px;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-info h4 {
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  font-size: 15px;
+}
+
+.transaction-info p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 14px;
+}
+
+.transaction-date {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.transaction-amount {
+  color: #4ade80;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.empty-state-small {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.empty-state-small p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.empty-state-small .muted {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: var(--spacing-xs);
+}
+

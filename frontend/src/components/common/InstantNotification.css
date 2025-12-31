@@ -1,0 +1,180 @@
+.instant-notifications-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.instant-notification {
+  background: linear-gradient(135deg, #2a2520 0%, #1a1a1a 100%);
+  border: 2px solid hsl(39, 77%, 47%);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+              0 0 20px rgba(200, 155, 60, 0.2);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.instant-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.instant-notification.hide {
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, 
+    rgba(200, 155, 60, 0.3) 0%, 
+    rgba(200, 155, 60, 0.1) 100%
+  );
+  border-bottom: 1px solid rgba(200, 155, 60, 0.3);
+}
+
+.notification-icon {
+  font-size: 1.2rem;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.notification-title {
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  color: hsl(42, 80%, 60%);
+  font-size: 0.95rem;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #B0A69B;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.notification-close:hover {
+  color: #F0E2B7;
+}
+
+.notification-body {
+  padding: 16px;
+}
+
+.student-info {
+  color: #F0E2B7;
+  margin-bottom: 12px;
+}
+
+.student-info strong {
+  color: hsl(42, 80%, 60%);
+}
+
+.request-details {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.subject-badge,
+.grade-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.subject-badge {
+  background: rgba(200, 155, 60, 0.2);
+  color: hsl(42, 80%, 60%);
+  border: 1px solid rgba(200, 155, 60, 0.4);
+}
+
+.grade-badge {
+  background: rgba(100, 150, 200, 0.2);
+  color: #8CBED6;
+  border: 1px solid rgba(100, 150, 200, 0.4);
+}
+
+.request-description {
+  color: #B0A69B;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border-left: 3px solid hsl(39, 77%, 47%);
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.notification-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, hsl(39, 77%, 47%) 0%, hsl(42, 80%, 40%) 100%);
+  border: none;
+  color: #1a1a1a;
+}
+
+.accept-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(200, 155, 60, 0.4);
+}
+
+.view-btn {
+  background: transparent;
+  border: 1px solid rgba(200, 155, 60, 0.5);
+  color: hsl(42, 80%, 60%);
+}
+
+.view-btn:hover {
+  background: rgba(200, 155, 60, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .instant-notifications-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+

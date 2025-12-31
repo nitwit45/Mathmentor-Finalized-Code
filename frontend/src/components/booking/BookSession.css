@@ -1,0 +1,234 @@
+.book-session-page {
+  max-width: 1000px;
+}
+
+.booking-subtitle {
+  color: var(--text-secondary);
+  margin: var(--spacing-xs) 0 var(--spacing-xl) 0;
+}
+
+.booking-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: var(--spacing-xl);
+}
+
+.booking-form-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.booking-form-section h1 {
+  font-family: 'Cinzel', serif;
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 24px;
+}
+
+.booking-form-section form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.booking-form-section .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.booking-form-section label {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.booking-form-section input,
+.booking-form-section select,
+.booking-form-section textarea {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.booking-form-section input:focus,
+.booking-form-section select:focus,
+.booking-form-section textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-light);
+}
+
+.booking-form-section select option {
+  background: var(--bg-card);
+}
+
+.book-btn {
+  width: 100%;
+  padding: var(--spacing-md) !important;
+  font-size: 16px;
+  margin-top: var(--spacing-md);
+}
+
+/* Summary */
+.booking-summary {
+  position: sticky;
+  top: var(--spacing-xl);
+  height: fit-content;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.summary-card h3 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 18px;
+}
+
+.tutor-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--spacing-lg);
+}
+
+.tutor-summary .tutor-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.tutor-summary .tutor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tutor-summary h4 {
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.tutor-summary p {
+  color: var(--color-primary-light);
+  margin: 0;
+  font-weight: 600;
+}
+
+.summary-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.summary-row.total {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.summary-row.total span:last-child {
+  color: var(--color-primary-light);
+}
+
+.payment-info {
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+}
+
+.payment-info p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.payment-info p:last-child {
+  margin: 0;
+}
+
+/* Booking success state */
+.booking-success {
+  max-width: 500px;
+  margin: var(--spacing-xl) auto;
+  text-align: center;
+  background: var(--bg-card);
+  padding: var(--spacing-xxl);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+.booking-success .success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-lg);
+  font-size: 36px;
+  color: white;
+}
+
+.booking-success h2 {
+  font-family: 'Cinzel', serif;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.booking-success p {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.booking-success .success-note {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.booking-success .action-button {
+  display: inline-block;
+  margin-top: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .booking-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .booking-summary {
+    position: static;
+  }
+}
+

@@ -1,0 +1,221 @@
+.instant-requests-page {
+  max-width: 800px;
+}
+
+/* Availability card */
+.availability-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--border-light);
+}
+
+.availability-info {
+  flex: 1;
+}
+
+.availability-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.availability-status.online {
+  color: #4ade80;
+}
+
+.availability-status.offline {
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.availability-status.online .status-dot {
+  animation: pulse 2s infinite;
+}
+
+.availability-info p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Toggle button */
+.toggle-btn {
+  width: 60px;
+  height: 32px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.toggle-btn.off {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-btn.on {
+  background: #4ade80;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  transition: left var(--transition-fast);
+}
+
+.toggle-btn.off .toggle-slider {
+  left: 4px;
+}
+
+.toggle-btn.on .toggle-slider {
+  left: 32px;
+}
+
+/* Active session */
+.active-session-card {
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}
+
+.active-session-card h3 {
+  color: #4ade80;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.active-session-card p {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+/* Requests section */
+.requests-section h2 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 18px;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  border: 2px solid var(--color-primary);
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(212, 160, 60, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(212, 160, 60, 0.5);
+  }
+}
+
+.request-info h3 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.request-subject {
+  color: var(--color-primary-light);
+  font-weight: 500;
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.request-topic {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 14px;
+}
+
+.request-expires {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.request-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%) !important;
+}
+
+.decline-btn:hover {
+  border-color: var(--color-error-main) !important;
+  color: var(--color-error-light) !important;
+}
+
+/* Empty state */
+.empty-state-small {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.waiting-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state-small p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.empty-state-small .muted {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: var(--spacing-xs);
+}
+
+/* Offline message */
+.offline-message {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.offline-message p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
