@@ -1,0 +1,17 @@
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.form-row .form-group {
+  min-width: 0; /* Prevents grid items from overflowing */
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+}
