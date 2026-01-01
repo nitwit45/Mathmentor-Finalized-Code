@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 import stripe
 
 from .models import (
@@ -57,7 +58,7 @@ class ProfileViewSet(viewsets.ViewSet):
     def me(self, request):
         """Get current user's profile based on their role."""
         user = request.user
-        
+
         if user.role == 'TUTOR':
             profile, created = TutorProfile.objects.get_or_create(user=user)
             serializer = TutorProfileSerializer(profile, context={'request': request})
@@ -76,7 +77,7 @@ class ProfileViewSet(viewsets.ViewSet):
             'is_profile_complete': profile.is_profile_complete,
         })
 
-    @action(detail=False, methods=['put', 'patch'])
+    @action(detail=False, methods=['patch'])
     def update_me(self, request):
         """Update current user's profile."""
         user = request.user
@@ -438,14 +439,14 @@ class SessionViewSet(viewsets.ViewSet):
         # Update tutor stats
         tutor_profile = user.tutor_profile
         tutor_profile.total_sessions += 1
-        tutor_profile.total_hours += session.duration / 60
+        tutor_profile.total_hours += Decimal(session.duration) / 60
         tutor_profile.total_earnings += session.price
         tutor_profile.save()
 
         # Update student stats
         student_profile = session.student.student_profile
         student_profile.total_sessions += 1
-        student_profile.total_hours += session.duration / 60
+        student_profile.total_hours += Decimal(session.duration) / 60
         student_profile.save()
 
         return Response({

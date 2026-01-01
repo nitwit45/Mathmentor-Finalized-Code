@@ -1,4 +1,5 @@
 import json
+import os
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
@@ -59,9 +60,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'sender_name': f"{message.sender.first_name} {message.sender.last_name}",
                             'created_at': message.created_at.isoformat(),
                             'is_read': message.is_read,
+                            'delivered_at': None,
+                            'read_at': None,
+                            'status': 'sent',
                         }
                     }
                 )
+
+        elif message_type == 'delivered_ack':
+            # Mark message as delivered
+            message_id = data.get('message_id')
+            if message_id:
+                delivered_at = await self.mark_message_delivered(message_id)
+                if delivered_at:
+                    # Broadcast delivery status to sender
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'message_status_update',
+                            'message_id': message_id,
+                            'status': 'delivered',
+                            'delivered_at': delivered_at,
+                        }
+                    )
 
         elif message_type == 'typing':
             # Broadcast typing indicator
@@ -76,13 +97,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         elif message_type == 'read':
             # Mark messages as read
-            await self.mark_messages_read()
+            message_ids = data.get('message_ids', [])
+            if message_ids:
+                read_at = await self.mark_messages_read(message_ids)
+                if read_at:
+                    # Broadcast read status to sender
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'message_status_update',
+                            'message_ids': message_ids,
+                            'status': 'read',
+                            'read_at': read_at,
+                        }
+                    )
 
     async def chat_message(self, event):
         """Send message to WebSocket."""
         await self.send(text_data=json.dumps({
             'type': 'message',
             'message': event['message']
+        }))
+
+    async def message_status_update(self, event):
+        """Send message status update to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'status_update',
+            'message_id': event.get('message_id'),
+            'message_ids': event.get('message_ids'),
+            'status': event['status'],
+            'delivered_at': event.get('delivered_at'),
+            'read_at': event.get('read_at'),
         }))
 
     async def typing_indicator(self, event):
@@ -118,14 +163,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return message
 
     @database_sync_to_async
-    def mark_messages_read(self):
+    def mark_message_delivered(self, message_id):
+        from .models import Message
+        try:
+            message = Message.objects.get(id=message_id)
+            # Only mark as delivered if it's not already delivered
+            if not message.delivered_at:
+                message.delivered_at = timezone.now()
+                message.save()
+                return message.delivered_at.isoformat()
+        except Message.DoesNotExist:
+            pass
+        return None
+
+    @database_sync_to_async
+    def mark_messages_read(self, message_ids):
         from .models import Message, Conversation
         conversation = Conversation.objects.get(id=self.conversation_id)
-        Message.objects.filter(
+        messages = Message.objects.filter(
+            id__in=message_ids,
             conversation=conversation
         ).exclude(
             sender=self.user
-        ).update(is_read=True)
+        )
+        
+        read_at = timezone.now()
+        messages.update(is_read=True, read_at=read_at)
+        return read_at.isoformat() if messages.exists() else None
 
 
 class InstantMatchConsumer(AsyncWebsocketConsumer):
@@ -233,6 +297,15 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
         result = await self.accept_instant_request(request_id)
 
         if result['success']:
+            # Broadcast to all tutors in the subject group that the request is taken
+            await self.channel_layer.group_send(
+                f'instant_{result["subject"]}',
+                {
+                    'type': 'request_taken',
+                    'request_id': request_id,
+                }
+            )
+
             # Notify the tutor
             await self.send(text_data=json.dumps({
                 'type': 'request_accepted',
@@ -251,6 +324,7 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
         else:
             await self.send(text_data=json.dumps({
                 'type': 'accept_failed',
+                'request_id': request_id,
                 'message': result.get('message', 'Request no longer available'),
             }))
 
@@ -262,7 +336,17 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
     async def handle_cancel_request(self, data):
         """Handle student cancelling their request."""
         request_id = data.get('request_id')
-        await self.cancel_instant_request(request_id)
+        request = await self.cancel_instant_request(request_id)
+
+        if request:
+            # Broadcast cancellation to all tutors in the subject group
+            await self.channel_layer.group_send(
+                f'instant_{request.subject}',
+                {
+                    'type': 'request_cancelled',
+                    'request_id': str(request_id),
+                }
+            )
 
         await self.send(text_data=json.dumps({
             'type': 'request_cancelled',
@@ -307,6 +391,20 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
             'type': 'match_found',
             'session': event['session'],
             'tutor': event['tutor'],
+        }))
+
+    async def request_cancelled(self, event):
+        """Notify tutor that a request was cancelled."""
+        await self.send(text_data=json.dumps({
+            'type': 'request_cancelled',
+            'request_id': event['request_id'],
+        }))
+
+    async def request_taken(self, event):
+        """Notify tutor that a request was taken by another tutor."""
+        await self.send(text_data=json.dumps({
+            'type': 'request_taken',
+            'request_id': event['request_id'],
         }))
 
     @database_sync_to_async
@@ -393,6 +491,7 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
                 return {
                     'success': True,
                     'student_id': request.student.id,
+                    'subject': request.subject,
                     'session': {
                         'id': str(session.id),
                         'meeting_link': session.meeting_link,
@@ -419,11 +518,17 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def cancel_instant_request(self, request_id):
         from .models import InstantRequest
-        InstantRequest.objects.filter(
-            id=request_id,
-            student=self.user,
-            status='searching'
-        ).update(status='cancelled')
+        try:
+            request = InstantRequest.objects.get(
+                id=request_id,
+                student=self.user,
+                status='searching'
+            )
+            request.status = InstantRequest.Status.CANCELLED
+            request.save()
+            return request
+        except InstantRequest.DoesNotExist:
+            return None
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):

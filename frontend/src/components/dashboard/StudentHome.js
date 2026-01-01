@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getSessions, searchTutors } from '../../services/api';
+import { HiSearch, HiLightningBolt, HiChat, HiStar } from 'react-icons/hi';
 import './DashboardHome.css';
 
 function StudentHome() {
@@ -64,21 +65,21 @@ function StudentHome() {
       {/* Quick actions */}
       <div className="quick-actions">
         <Link to="/student/find-tutor" className="quick-action-card">
-          <span className="action-icon">🔍</span>
+          <span className="action-icon"><HiSearch /></span>
           <div>
             <h3>Find a Tutor</h3>
             <p>Browse and filter tutors</p>
           </div>
         </Link>
         <Link to="/student/instant" className="quick-action-card highlight">
-          <span className="action-icon">⚡</span>
+          <span className="action-icon"><HiLightningBolt /></span>
           <div>
             <h3>Get Instant Help</h3>
             <p>Connect with a tutor now</p>
           </div>
         </Link>
         <Link to="/student/messages" className="quick-action-card">
-          <span className="action-icon">💬</span>
+          <span className="action-icon"><HiChat /></span>
           <div>
             <h3>Messages</h3>
             <p>Chat with your tutors</p>
@@ -149,7 +150,7 @@ function StudentHome() {
                     <div className="tutor-meta">
                       <span className="tutor-rate">£{tutor.hourly_rate}/hr</span>
                       {parseFloat(tutor.average_rating) > 0 && (
-                        <span className="tutor-rating">⭐ {parseFloat(tutor.average_rating).toFixed(1)}</span>
+                        <span className="tutor-rating"><HiStar /> {parseFloat(tutor.average_rating).toFixed(1)}</span>
                       )}
                     </div>
                   </div>

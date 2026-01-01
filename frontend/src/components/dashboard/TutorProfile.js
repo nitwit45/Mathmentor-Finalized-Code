@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTutorProfile, startConversation } from '../../services/api';
+import { HiStar, HiCalendar, HiChat, HiLightningBolt, HiCheckCircle, HiBookOpen } from 'react-icons/hi';
 import './TutorProfile.css';
 
 function TutorProfile() {
@@ -80,7 +81,11 @@ function TutorProfile() {
               <div className="profile-rating">
                 {parseFloat(tutor.average_rating) > 0 ? (
                   <>
-                    <span className="stars">{'⭐'.repeat(Math.round(parseFloat(tutor.average_rating)))}</span>
+                    <span className="stars">
+                      {Array.from({ length: Math.round(parseFloat(tutor.average_rating)) }, (_, i) => (
+                        <HiStar key={i} />
+                      ))}
+                    </span>
                     <span className="rating-value">{parseFloat(tutor.average_rating).toFixed(1)}</span>
                     <span className="review-count">({tutor.total_reviews} reviews)</span>
                   </>
@@ -89,9 +94,9 @@ function TutorProfile() {
                 )}
               </div>
               <div className="profile-stats">
-                <span>📚 {tutor.total_sessions} sessions completed</span>
+                <span><HiBookOpen /> {tutor.total_sessions} sessions completed</span>
                 {tutor.is_available_for_instant && (
-                  <span className="available-badge">🟢 Available for Instant Tutoring</span>
+                  <span className="available-badge"><HiCheckCircle /> Available for Instant Tutoring</span>
                 )}
               </div>
             </div>
@@ -136,7 +141,9 @@ function TutorProfile() {
                   <div key={review.id} className="review-item">
                     <div className="review-header">
                       <span className="review-rating">
-                        {'⭐'.repeat(review.rating)}
+                        {Array.from({ length: review.rating }, (_, i) => (
+                          <HiStar key={i} />
+                        ))}
                       </span>
                       <span className="review-author">{review.student_name}</span>
                       <span className="review-date">
@@ -163,14 +170,14 @@ function TutorProfile() {
 
             <div className="booking-actions">
               <Link to={`/student/tutor/${tutorId}/book`} className="action-button book-btn">
-                📅 Book a Session
+                <HiCalendar /> Book a Session
               </Link>
               <button onClick={handleMessage} className="action-button secondary">
-                💬 Send Message
+                <HiChat /> Send Message
               </button>
               {tutor.is_available_for_instant && (
                 <Link to="/student/instant" className="action-button instant-btn">
-                  ⚡ Request Instant Session
+                  <HiLightningBolt /> Request Instant Session
                 </Link>
               )}
             </div>

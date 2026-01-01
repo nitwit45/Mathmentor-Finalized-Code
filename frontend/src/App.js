@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { initializeCsrf } from './services/api';
 
 // Auth pages
@@ -20,6 +21,10 @@ import TutorDashboard from './pages/TutorDashboard';
 
 // Public pages
 import Home from './pages/Home';
+
+// Toast components
+import ToastContainer from './components/common/ToastContainer';
+import ConfirmModal from './components/common/ConfirmModal';
 
 import './App.css';
 
@@ -232,11 +237,15 @@ function App() {
 
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <div className="app-container">
-          <AppRoutes />
-        </div>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <div className="app-container">
+            <AppRoutes />
+          </div>
+          <ToastContainer />
+          <ConfirmModal />
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

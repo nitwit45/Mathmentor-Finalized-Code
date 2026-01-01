@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getMyAvailability, addAvailability, deleteAvailability } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 import './Availability.css';
 
 const DAYS = [
@@ -13,6 +14,7 @@ const DAYS = [
 ];
 
 function Availability() {
+  const { showConfirm } = useToast();
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -66,7 +68,8 @@ function Availability() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Remove this availability slot?')) return;
+    const confirmed = await showConfirm('Remove this availability slot?');
+    if (!confirmed) return;
 
     try {
       const response = await deleteAvailability(id);
@@ -190,4 +193,5 @@ function Availability() {
 }
 
 export default Availability;
+
 

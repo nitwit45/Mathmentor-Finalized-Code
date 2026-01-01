@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { HiExclamation } from 'react-icons/hi';
 import './VideoRoom.css';
 
 /**
@@ -192,7 +193,7 @@ function VideoRoom({
     return (
       <div className="video-room-error">
         <div className="error-content">
-          <span className="error-icon">⚠️</span>
+          <span className="error-icon"><HiExclamation /></span>
           <h3>Unable to Start Video</h3>
           <p>{error}</p>
           <button onClick={onClose} className="error-close-btn">

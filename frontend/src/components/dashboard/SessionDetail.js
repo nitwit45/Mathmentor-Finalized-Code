@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast, TOAST_TYPES } from '../../contexts/ToastContext';
 import { getSession, cancelSession, completeSession, reviewSession, getJaasToken } from '../../services/api';
 import VideoRoom from '../video/VideoRoom';
+import { HiStar, HiVideoCamera } from 'react-icons/hi';
 import './SessionDetail.css';
 
 function SessionDetail() {
   const { sessionId } = useParams();
   const { user } = useAuth();
+  const { showToast, showConfirm } = useToast();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,15 +43,18 @@ function SessionDetail() {
   }, [sessionId]);
 
   const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel this session?')) return;
-    
+    const confirmed = await showConfirm('Are you sure you want to cancel this session?');
+
+    if (!confirmed) return;
+
     try {
       const response = await cancelSession(sessionId);
       if (response.success) {
         setSession(prev => ({ ...prev, status: 'cancelled', status_display: 'Cancelled' }));
+        showToast('Session cancelled successfully', TOAST_TYPES.SUCCESS);
       }
     } catch (err) {
-      alert('Failed to cancel session');
+      showToast('Failed to cancel session', TOAST_TYPES.ERROR);
     }
   };
 
@@ -57,9 +63,10 @@ function SessionDetail() {
       const response = await completeSession(sessionId);
       if (response.success) {
         setSession(prev => ({ ...prev, status: 'completed', status_display: 'Completed' }));
+        showToast('Session completed successfully', TOAST_TYPES.SUCCESS);
       }
     } catch (err) {
-      alert('Failed to complete session');
+      showToast('Failed to complete session', TOAST_TYPES.ERROR);
     }
   };
 
@@ -71,10 +78,10 @@ function SessionDetail() {
         setJaasConfig(response.data);
         setShowVideo(true);
       } else {
-        alert(response.message || 'Unable to join session');
+        showToast(response.message || 'Unable to join session', TOAST_TYPES.ERROR);
       }
     } catch (err) {
-      alert('Failed to start video session. Please try again.');
+      showToast('Failed to start video session. Please try again.', TOAST_TYPES.ERROR);
     } finally {
       setJoiningVideo(false);
     }
@@ -98,10 +105,10 @@ function SessionDetail() {
       const response = await reviewSession(sessionId, review);
       if (response.success) {
         setShowReviewForm(false);
-        alert('Review submitted successfully!');
+        showToast('Review submitted successfully!', TOAST_TYPES.SUCCESS);
       }
     } catch (err) {
-      alert('Failed to submit review');
+      showToast('Failed to submit review', TOAST_TYPES.ERROR);
     } finally {
       setSubmitting(false);
     }
@@ -200,12 +207,12 @@ function SessionDetail() {
         {/* Action buttons */}
         <div className="session-actions">
           {session.can_join && (
-            <button 
+            <button
               onClick={handleJoinSession}
               disabled={joiningVideo}
               className="action-button join-btn large"
             >
-              {joiningVideo ? 'Connecting...' : '🎥 Join Video Session'}
+              {joiningVideo ? 'Connecting...' : <><HiVideoCamera /> Join Video Session</>}
             </button>
           )}
 
@@ -215,15 +222,15 @@ function SessionDetail() {
             </button>
           )}
 
-          {session.status === 'in_progress' && user?.role === 'TUTOR' && (
+          {/* {session.status === 'in_progress' && user?.role === 'TUTOR' && (
             <button onClick={handleComplete} className="action-button">
               ✓ Mark as Complete
             </button>
-          )}
+          )} */}
 
           {session.status === 'completed' && user?.role === 'STUDENT' && !showReviewForm && (
             <button onClick={() => setShowReviewForm(true)} className="action-button">
-              ⭐ Leave a Review
+              <HiStar /> Leave a Review
             </button>
           )}
         </div>
@@ -242,7 +249,7 @@ function SessionDetail() {
                     className={`star-btn ${review.rating >= star ? 'active' : ''}`}
                     onClick={() => setReview(prev => ({ ...prev, rating: star }))}
                   >
-                    ⭐
+                    <HiStar />
                   </button>
                 ))}
               </div>

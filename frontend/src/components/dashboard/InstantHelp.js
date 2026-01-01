@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getChoices, createInstantWebSocket } from '../../services/api';
+import { HiLightningBolt, HiSearch, HiSparkles, HiVideoCamera } from 'react-icons/hi';
 import './InstantHelp.css';
 
 function InstantHelp() {
@@ -33,15 +34,13 @@ function InstantHelp() {
     return new Promise((resolve, reject) => {
       try {
         const ws = createInstantWebSocket();
-        
+
         ws.onopen = () => {
-          console.log('Instant WebSocket connected');
           resolve(ws);
         };
 
         ws.onmessage = (event) => {
           const data = JSON.parse(event.data);
-          console.log('Received:', data);
 
           if (data.type === 'request_created') {
             requestIdRef.current = data.request_id;
@@ -54,12 +53,11 @@ function InstantHelp() {
         };
 
         ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
           reject(error);
         };
 
         ws.onclose = () => {
-          console.log('Instant WebSocket disconnected');
+          // Handle connection close
         };
 
         wsRef.current = ws;
@@ -82,7 +80,7 @@ function InstantHelp() {
 
     try {
       const ws = await connectWebSocket();
-      
+
       // Send request
       ws.send(JSON.stringify({
         action: 'request_tutor',
@@ -130,7 +128,7 @@ function InstantHelp() {
   return (
     <div className="instant-help-page">
       <div className="page-header">
-        <h1>⚡ Get Instant Help</h1>
+        <h1><HiLightningBolt /> Get Instant Help</h1>
         <p>Connect with an available tutor right now</p>
       </div>
 
@@ -178,7 +176,7 @@ function InstantHelp() {
             </div>
 
             <button type="submit" className="action-button instant-btn">
-              ⚡ Find Available Tutor Now
+              <HiLightningBolt /> Find Available Tutor Now
             </button>
           </form>
 
@@ -198,7 +196,7 @@ function InstantHelp() {
           <div className="searching-animation">
             <div className="pulse-ring"></div>
             <div className="pulse-ring delay"></div>
-            <span className="search-icon">🔍</span>
+            <span className="search-icon"><HiSearch /></span>
           </div>
           <h2>Searching for available tutors...</h2>
           <p>We're notifying tutors who teach {formData.subject} at {formData.grade} level</p>
@@ -212,7 +210,7 @@ function InstantHelp() {
       {status === 'matched' && matchedSession && (
         <div className="matched-state">
           <div className="match-success">
-            <span className="success-icon">🎉</span>
+            <span className="success-icon"><HiSparkles /></span>
             <h2>Tutor Found!</h2>
             <p>A tutor has accepted your request</p>
           </div>
@@ -223,7 +221,7 @@ function InstantHelp() {
           </div>
 
           <button onClick={handleJoinSession} className="action-button join-btn large">
-            🎥 Join Video Session Now
+            <HiVideoCamera /> Join Video Session Now
           </button>
         </div>
       )}

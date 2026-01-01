@@ -125,14 +125,14 @@ export async function getMyProfile() {
 }
 
 export async function updateMyProfile(data) {
-  return apiRequest('/api/profile/update-me/', {
+  return apiRequest('/api/profile/update_me/', {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
 
 export async function updateMyProfileWithImage(formData) {
-  return apiRequestFormData('/api/profile/update-me/', formData, 'PATCH');
+  return apiRequestFormData('/api/profile/update_me/', formData, 'PATCH');
 }
 
 export async function getChoices() {

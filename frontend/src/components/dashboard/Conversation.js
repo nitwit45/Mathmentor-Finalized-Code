@@ -4,6 +4,32 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getConversation, sendMessage, createChatWebSocket } from '../../services/api';
 import './Conversation.css';
 
+// Message status icon component
+function MessageStatusIcon({ status }) {
+  if (status === 'read') {
+    return (
+      <svg className="message-status-icon read" width="16" height="11" viewBox="0 0 16 11">
+        <path d="M11.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06l-3.336-3.336-3.336 3.337a.75.75 0 1 1-1.06-1.061L11.071.653z" />
+        <path d="M6.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06L6.601 2.243 3.265 5.58a.75.75 0 1 1-1.06-1.061L6.071.653z" />
+      </svg>
+    );
+  } else if (status === 'delivered') {
+    return (
+      <svg className="message-status-icon delivered" width="16" height="11" viewBox="0 0 16 11">
+        <path d="M11.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06l-3.336-3.336-3.336 3.337a.75.75 0 1 1-1.06-1.061L11.071.653z" />
+        <path d="M6.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06L6.601 2.243 3.265 5.58a.75.75 0 1 1-1.06-1.061L6.071.653z" />
+      </svg>
+    );
+  } else {
+    // sent - single checkmark
+    return (
+      <svg className="message-status-icon sent" width="16" height="11" viewBox="0 0 16 11">
+        <path d="M11.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06l-3.336-3.336-3.336 3.337a.75.75 0 1 1-1.06-1.061L11.071.653z" />
+      </svg>
+    );
+  }
+}
+
 function Conversation() {
   const { conversationId } = useParams();
   const { user } = useAuth();
@@ -51,12 +77,58 @@ function Conversation() {
       
       ws.onopen = () => {
         console.log('WebSocket connected');
+        // Mark all unread messages as read when opening conversation
+        markAllAsRead();
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        
         if (data.type === 'message') {
-          setMessages(prev => [...prev, data.message]);
+          const message = data.message;
+          // Add message to state using functional update to ensure we have latest state
+          setMessages(prev => {
+            // Check if message already exists to avoid duplicates
+            const exists = prev.some(m => m.id === message.id);
+            if (exists) {
+              return prev;
+            }
+            return [...prev, message];
+          });
+          
+          // If message is from other user, send delivery acknowledgment
+          if (message.sender_id !== user?.id && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'delivered_ack',
+              message_id: message.id,
+            }));
+            
+            // Also mark as read immediately since user is viewing the conversation
+            ws.send(JSON.stringify({
+              type: 'read',
+              message_ids: [message.id],
+            }));
+          }
+        } else if (data.type === 'status_update') {
+          // Update message status in local state using functional update
+          setMessages(prev => {
+            return prev.map(msg => {
+              const msgIdStr = String(msg.id);
+              const updateIdStr = data.message_id ? String(data.message_id) : null;
+              const matchesSingle = updateIdStr && msgIdStr === updateIdStr;
+              const matchesMultiple = data.message_ids && data.message_ids.some(id => String(id) === msgIdStr);
+              
+              if (matchesSingle || matchesMultiple) {
+                return {
+                  ...msg,
+                  status: data.status,
+                  delivered_at: data.delivered_at || msg.delivered_at,
+                  read_at: data.read_at || msg.read_at,
+                };
+              }
+              return msg;
+            });
+          });
         }
       };
 
@@ -76,7 +148,28 @@ function Conversation() {
     } catch (error) {
       console.error('WebSocket connection failed:', error);
     }
-  }, [conversationId]);
+  }, [conversationId, user?.id]);
+
+  // Mark all unread messages as read
+  const markAllAsRead = useCallback(() => {
+    const unreadIds = messages
+      .filter(msg => msg.sender_id !== user?.id && !msg.is_read)
+      .map(msg => msg.id);
+    
+    if (unreadIds.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'read',
+        message_ids: unreadIds,
+      }));
+    }
+  }, [messages, user?.id]);
+
+  // Mark messages as read when component mounts or messages change
+  useEffect(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      markAllAsRead();
+    }
+  }, [markAllAsRead]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -175,17 +268,26 @@ function Conversation() {
             <div className="date-divider">
               <span>{formatDate(msgs[0].created_at)}</span>
             </div>
-            {msgs.map(msg => (
+            {msgs.map(msg => {
+              const isSent = (msg.sender?.id || msg.sender_id) === user?.id;
+              const displayStatus = msg.status || 'sent';
+              return (
               <div 
                 key={msg.id} 
-                className={`message ${msg.sender_id === user?.id ? 'sent' : 'received'}`}
+                className={`message ${isSent ? 'sent' : 'received'}`}
               >
                 <div className="message-bubble">
                   <p>{msg.content}</p>
-                  <span className="message-time">{formatTime(msg.created_at)}</span>
+                  <div className="message-meta">
+                    <span className="message-time">{formatTime(msg.created_at)}</span>
+                    {isSent && (
+                      <MessageStatusIcon status={displayStatus} />
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
         <div ref={messagesEndRef} />

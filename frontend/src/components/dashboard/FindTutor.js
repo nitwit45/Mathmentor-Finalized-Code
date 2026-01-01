@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { searchTutors, getChoices } from '../../services/api';
+import { HiStar, HiSearch } from 'react-icons/hi';
 import './FindTutor.css';
 
 function FindTutor() {
@@ -188,7 +189,11 @@ function FindTutor() {
                     <div className="tutor-rating">
                       {parseFloat(tutor.average_rating) > 0 ? (
                         <>
-                          <span className="stars">{'⭐'.repeat(Math.round(parseFloat(tutor.average_rating)))}</span>
+                          <span className="stars">
+                            {Array.from({ length: Math.round(parseFloat(tutor.average_rating)) }, (_, i) => (
+                              <HiStar key={i} />
+                            ))}
+                          </span>
                           <span className="rating-value">{parseFloat(tutor.average_rating).toFixed(1)}</span>
                           <span className="review-count">({tutor.total_reviews} reviews)</span>
                         </>
@@ -252,7 +257,7 @@ function FindTutor() {
         </>
       ) : (
         <div className="empty-state">
-          <div className="empty-state-icon">🔍</div>
+          <div className="empty-state-icon"><HiSearch /></div>
           <h3>No tutors found</h3>
           <p>Try adjusting your filters or search criteria</p>
           <button onClick={clearFilters} className="action-button">

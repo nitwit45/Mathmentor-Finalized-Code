@@ -42,7 +42,7 @@ class TutorProfileSerializer(serializers.ModelSerializer):
             'grades_taught', 'grades_display', 'qualifications', 'profile_image',
             'profile_image_url', 'is_available_for_instant', 'is_profile_complete',
             'total_sessions', 'total_hours', 'average_rating', 'total_reviews',
-            'created_at', 'updated_at'
+            'total_earnings', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'user', 'is_profile_complete', 'total_sessions', 'total_hours',
@@ -253,6 +253,9 @@ class ConversationSerializer(serializers.ModelSerializer):
                 'sender_id': message.sender.id,
                 'created_at': message.created_at.isoformat(),
                 'is_read': message.is_read,
+                'delivered_at': message.delivered_at.isoformat() if message.delivered_at else None,
+                'read_at': message.read_at.isoformat() if message.read_at else None,
+                'status': message.status,
             }
         return None
 
@@ -266,11 +269,16 @@ class ConversationSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     """Serializer for messages."""
     sender = UserBasicSerializer(read_only=True)
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'content', 'is_read', 'created_at']
-        read_only_fields = ['id', 'sender', 'is_read', 'created_at']
+        fields = ['id', 'conversation', 'sender', 'content', 'is_read', 'delivered_at', 'read_at', 'created_at', 'status']
+        read_only_fields = ['id', 'sender', 'is_read', 'delivered_at', 'read_at', 'created_at']
+    
+    def get_status(self, obj):
+        """Get message delivery status."""
+        return obj.status
 
 
 class InstantRequestSerializer(serializers.ModelSerializer):
@@ -314,4 +322,5 @@ class GradeChoiceSerializer(serializers.Serializer):
     """Serializer for grade choices."""
     key = serializers.CharField()
     label = serializers.CharField()
+
 

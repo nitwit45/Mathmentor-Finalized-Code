@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getMyProfile, getSessions } from '../../services/api';
+import { HiCurrencyPound, HiBookOpen, HiClock } from 'react-icons/hi';
 import './Earnings.css';
 
 function Earnings() {
@@ -19,17 +20,37 @@ function Earnings() {
           getSessions({ time: 'past', status: 'completed' }),
         ]);
 
+        let totalEarnings = 0;
+        let completedSessionsList = [];
+
+        if (sessionsRes.success) {
+          completedSessionsList = sessionsRes.data.filter(s => s.status === 'completed');
+          // Calculate total earnings from completed sessions as fallback
+          totalEarnings = completedSessionsList.reduce((sum, session) => {
+            return sum + (parseFloat(session.price) || 0);
+          }, 0);
+        }
+
         if (profileRes.success) {
+          const backendEarnings = parseFloat(profileRes.data.total_earnings) || 0;
+          // Use backend value if available and non-zero, otherwise use calculated value
+          const finalEarnings = backendEarnings > 0 ? backendEarnings : totalEarnings;
+          
           setStats({
-            totalEarnings: parseFloat(profileRes.data.total_earnings) || 0,
-            totalSessions: parseInt(profileRes.data.total_sessions) || 0,
+            totalEarnings: finalEarnings,
+            totalSessions: parseInt(profileRes.data.total_sessions) || completedSessionsList.length,
             totalHours: parseFloat(profileRes.data.total_hours) || 0,
+          });
+        } else {
+          // If profile fetch fails, use calculated values
+          setStats({
+            totalEarnings: totalEarnings,
+            totalSessions: completedSessionsList.length,
+            totalHours: 0,
           });
         }
 
-        if (sessionsRes.success) {
-          setCompletedSessions(sessionsRes.data.filter(s => s.status === 'completed'));
-        }
+        setCompletedSessions(completedSessionsList);
       } catch (error) {
         console.error('Error loading earnings:', error);
       } finally {
@@ -67,21 +88,21 @@ function Earnings() {
       {/* Stats cards */}
       <div className="earnings-stats">
         <div className="earnings-stat-card">
-          <div className="stat-icon">💷</div>
+          <div className="stat-icon"><HiCurrencyPound /></div>
           <div className="stat-content">
             <span className="stat-value">£{stats.totalEarnings.toFixed(2)}</span>
             <span className="stat-label">Total Earnings</span>
           </div>
         </div>
         <div className="earnings-stat-card">
-          <div className="stat-icon">📚</div>
+          <div className="stat-icon"><HiBookOpen /></div>
           <div className="stat-content">
             <span className="stat-value">{stats.totalSessions}</span>
             <span className="stat-label">Sessions Completed</span>
           </div>
         </div>
         <div className="earnings-stat-card">
-          <div className="stat-icon">⏱️</div>
+          <div className="stat-icon"><HiClock /></div>
           <div className="stat-content">
             <span className="stat-value">{stats.totalHours.toFixed(1)}</span>
             <span className="stat-label">Hours Tutored</span>

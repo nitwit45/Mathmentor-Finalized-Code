@@ -265,6 +265,8 @@ class Message(models.Model):
     )
     content = models.TextField()
     is_read = models.BooleanField(default=False)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -272,6 +274,15 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.email}: {self.content[:50]}"
+    
+    @property
+    def status(self):
+        """Get message delivery status."""
+        if self.is_read and self.read_at:
+            return 'read'
+        elif self.delivered_at:
+            return 'delivered'
+        return 'sent'
 
 
 class InstantRequest(models.Model):

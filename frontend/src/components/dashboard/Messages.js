@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getConversations } from '../../services/api';
+import { HiChat } from 'react-icons/hi';
 import './Messages.css';
 
 function Messages() {
@@ -92,10 +93,10 @@ function Messages() {
         </div>
       ) : (
         <div className="empty-state">
-          <div className="empty-state-icon">💬</div>
+          <div className="empty-state-icon"><HiChat /></div>
           <h3>No conversations yet</h3>
           <p>
-            {user?.role === 'STUDENT' 
+            {user?.role === 'STUDENT'
               ? 'Find a tutor and send them a message to start a conversation'
               : 'Students will message you when they want to connect'
             }
@@ -112,4 +113,5 @@ function Messages() {
 }
 
 export default Messages;
+
 

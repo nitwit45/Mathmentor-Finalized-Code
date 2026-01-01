@@ -103,7 +103,7 @@
   margin-left: 260px;
   padding: var(--spacing-xl);
   overflow-y: auto;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 /* Dashboard page header */
@@ -334,4 +334,5 @@
     display: none;
   }
 }
+
 

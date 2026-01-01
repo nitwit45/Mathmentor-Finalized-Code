@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getSessions, getMyProfile } from '../../services/api';
+import { HiBookOpen, HiCurrencyPound, HiStar, HiCheckCircle, HiXCircle, HiLightningBolt, HiCalendar, HiChat } from 'react-icons/hi';
 import './DashboardHome.css';
 
 function TutorHome() {
@@ -77,23 +78,23 @@ function TutorHome() {
       {/* Stats cards */}
       <div className="stats-grid">
         <div className="stat-card dashboard-card">
-          <div className="stat-icon">📚</div>
+          <div className="stat-icon"><HiBookOpen /></div>
           <div className="stat-value">{stats.totalSessions}</div>
           <div className="stat-label">Total Sessions</div>
         </div>
         <div className="stat-card dashboard-card">
-          <div className="stat-icon">💷</div>
+          <div className="stat-icon"><HiCurrencyPound /></div>
           <div className="stat-value">£{stats.totalEarnings.toFixed(0)}</div>
           <div className="stat-label">Total Earnings</div>
         </div>
         <div className="stat-card dashboard-card">
-          <div className="stat-icon">⭐</div>
+          <div className="stat-icon"><HiStar /></div>
           <div className="stat-value">{stats.averageRating.toFixed(1)}</div>
           <div className="stat-label">{stats.totalReviews} Reviews</div>
         </div>
         <div className="stat-card dashboard-card">
           <div className={`stat-icon ${isAvailable ? 'available' : ''}`}>
-            {isAvailable ? '🟢' : '🔴'}
+            {isAvailable ? <HiCheckCircle /> : <HiXCircle />}
           </div>
           <div className="stat-value">{isAvailable ? 'Online' : 'Offline'}</div>
           <div className="stat-label">Instant Availability</div>
@@ -103,21 +104,21 @@ function TutorHome() {
       {/* Quick actions */}
       <div className="quick-actions">
         <Link to="/tutor/requests" className="quick-action-card highlight">
-          <span className="action-icon">⚡</span>
+          <span className="action-icon"><HiLightningBolt /></span>
           <div>
             <h3>Instant Requests</h3>
             <p>View student requests</p>
           </div>
         </Link>
         <Link to="/tutor/sessions" className="quick-action-card">
-          <span className="action-icon">📅</span>
+          <span className="action-icon"><HiCalendar /></span>
           <div>
             <h3>Session Requests</h3>
             <p>Accept pending bookings</p>
           </div>
         </Link>
         <Link to="/tutor/messages" className="quick-action-card">
-          <span className="action-icon">💬</span>
+          <span className="action-icon"><HiChat /></span>
           <div>
             <h3>Messages</h3>
             <p>Chat with students</p>

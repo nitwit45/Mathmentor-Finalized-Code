@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getTutorProfile, createBooking } from '../../services/api';
+import { getTutorProfile, createBooking, getChoices } from '../../services/api';
+import { HiCheck, HiMail } from 'react-icons/hi';
 import './BookSession.css';
 
 function BookSession() {
@@ -11,6 +12,7 @@ function BookSession() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [choices, setChoices] = useState({ subjects: [] });
 
   const [formData, setFormData] = useState({
     date: '',
@@ -23,9 +25,17 @@ function BookSession() {
   useEffect(() => {
     async function loadData() {
       try {
-        const tutorRes = await getTutorProfile(tutorId);
+        const [tutorRes, choicesRes] = await Promise.all([
+          getTutorProfile(tutorId),
+          getChoices(),
+        ]);
+        
         if (tutorRes.success) {
           setTutor(tutorRes.data);
+        }
+        
+        if (choicesRes.success) {
+          setChoices(choicesRes.data);
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -118,7 +128,7 @@ function BookSession() {
   if (success) {
     return (
       <div className="booking-success">
-        <div className="success-icon">✓</div>
+        <div className="success-icon"><HiCheck /></div>
         <h2>Booking Request Sent!</h2>
         <p>Your booking request has been sent to {tutor.user.full_name}.</p>
         <p className="success-note">The tutor will review and accept your request shortly. You'll be notified once confirmed.</p>
@@ -176,15 +186,19 @@ function BookSession() {
 
             <div className="form-group">
               <label>Topic *</label>
-              <input
-                type="text"
+              <select
                 name="topic"
                 value={formData.topic}
                 onChange={handleChange}
-                placeholder="e.g., Algebra - Quadratic Equations"
-                maxLength={200}
                 required
-              />
+              >
+                <option value="">Select a topic...</option>
+                {choices.subjects.map(subject => (
+                  <option key={subject.key} value={subject.key}>
+                    {subject.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
@@ -239,8 +253,8 @@ function BookSession() {
             </div>
 
             <div className="payment-info">
-              <p>📩 Request sent to tutor for approval</p>
-              <p>✓ Free cancellation anytime before session</p>
+              <p><HiMail /> Request sent to tutor for approval</p>
+              <p><HiCheck /> Free cancellation anytime before session</p>
             </div>
           </div>
         </div>

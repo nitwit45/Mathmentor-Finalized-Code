@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { getSessions, updateSessionStatus, completeSession, endSession } from '../../services/api';
+import { HiInbox, HiCalendar, HiBookOpen, HiCheck, HiX, HiFlag } from 'react-icons/hi';
 import './MySessions.css';
 
 function MySessions() {
   const { user } = useAuth();
+  const { showConfirm } = useToast();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(user?.role === 'TUTOR' ? 'pending' : 'upcoming');
@@ -53,7 +56,10 @@ function MySessions() {
   const handleDecline = async (e, sessionId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to decline this booking request?')) return;
+
+    const confirmed = await showConfirm('Are you sure you want to decline this booking request?');
+    if (!confirmed) return;
+
     setActionLoading(sessionId);
     try {
       const response = await updateSessionStatus(sessionId, 'cancelled');
@@ -70,7 +76,10 @@ function MySessions() {
   const handleComplete = async (e, sessionId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Mark this session as completed?')) return;
+
+    const confirmed = await showConfirm('Mark this session as completed?');
+    if (!confirmed) return;
+
     setActionLoading(sessionId);
     try {
       const response = await completeSession(sessionId);
@@ -92,7 +101,8 @@ function MySessions() {
       ? 'Mark this session as completed?'
       : 'Are you sure you want to end this session?';
 
-    if (!window.confirm(confirmMessage)) return;
+    const confirmed = await showConfirm(confirmMessage);
+    if (!confirmed) return;
 
     setActionLoading(sessionId);
     try {
@@ -139,20 +149,20 @@ function MySessions() {
             className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
             onClick={() => setActiveTab('pending')}
           >
-            📥 Pending Requests
+            <HiInbox /> Pending Requests
           </button>
         )}
         <button
           className={`tab ${activeTab === 'upcoming' ? 'active' : ''}`}
           onClick={() => setActiveTab('upcoming')}
         >
-          Upcoming
+          <HiCalendar /> Upcoming
         </button>
         <button
           className={`tab ${activeTab === 'past' ? 'active' : ''}`}
           onClick={() => setActiveTab('past')}
         >
-          Past Sessions
+          <HiBookOpen /> Past Sessions
         </button>
       </div>
 
@@ -203,29 +213,29 @@ function MySessions() {
                       onClick={(e) => handleAccept(e, session.id)}
                       disabled={actionLoading === session.id}
                     >
-                      {actionLoading === session.id ? '...' : '✓ Accept'}
+                      {actionLoading === session.id ? '...' : <><HiCheck /> Accept</>}
                     </button>
                     <button
                       className="action-button decline-btn"
                       onClick={(e) => handleDecline(e, session.id)}
                       disabled={actionLoading === session.id}
                     >
-                      ✗ Decline
+                      <HiX /> Decline
                     </button>
                   </div>
                 )}
                 
                 {session.can_join && session.meeting_link && (
                   <div className="session-actions-inline">
-                    <a
-                      href={session.meeting_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       className="action-button join-btn"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(session.meeting_link, '_blank', 'noopener,noreferrer');
+                      }}
                     >
                       Join Now
-                    </a>
+                    </button>
 
                     {/* Tutor can complete in-progress sessions */}
                     {user?.role === 'TUTOR' && session.status === 'in_progress' && (
@@ -234,24 +244,12 @@ function MySessions() {
                         onClick={(e) => handleComplete(e, session.id)}
                         disabled={actionLoading === session.id}
                       >
-                        {actionLoading === session.id ? '...' : '✓ Complete'}
+                        {actionLoading === session.id ? '...' : <><HiCheck /> Complete</>}
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* Tutor can end scheduled/confirmed sessions */}
-                {user?.role === 'TUTOR' && ['scheduled', 'confirmed', 'in_progress'].includes(session.status) && (
-                  <div className="session-actions-inline">
-                    <button
-                      className="action-button end-session-btn"
-                      onClick={(e) => handleEndSession(e, session.id, session.status)}
-                      disabled={actionLoading === session.id}
-                    >
-                      {actionLoading === session.id ? '...' : '🏁 End Session'}
-                    </button>
-                  </div>
-                )}
               </div>
             </Link>
           ))}
@@ -259,10 +257,10 @@ function MySessions() {
       ) : (
         <div className="empty-state">
           <div className="empty-state-icon">
-            {activeTab === 'pending' ? '📥' : activeTab === 'upcoming' ? '📅' : '📚'}
+            {activeTab === 'pending' ? <HiInbox /> : activeTab === 'upcoming' ? <HiCalendar /> : <HiBookOpen />}
           </div>
           <h3>
-            {activeTab === 'pending' 
+            {activeTab === 'pending'
               ? 'No pending requests'
               : `No ${activeTab} sessions`
             }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getMyProfile, updateMyProfile, createInstantWebSocket } from '../../services/api';
+import { HiLightningBolt, HiVideoCamera, HiCheck, HiX, HiEye } from 'react-icons/hi';
 import './InstantRequests.css';
 
 function InstantRequests() {
@@ -7,7 +8,9 @@ function InstantRequests() {
   const [requests, setRequests] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unavailableRequests, setUnavailableRequests] = useState({}); // Track requests that are no longer available
   const wsRef = useRef(null);
+  const timeoutRefs = useRef({}); // Track timeouts to prevent multiple for same request
 
   useEffect(() => {
     async function loadProfile() {
@@ -53,6 +56,7 @@ function InstantRequests() {
         const data = JSON.parse(event.data);
         console.log('Received:', data);
 
+
         if (data.type === 'instant_request') {
           setRequests(prev => [data.request, ...prev]);
           // Auto-remove after expiration
@@ -62,6 +66,42 @@ function InstantRequests() {
         } else if (data.type === 'request_accepted') {
           setActiveSession(data.session);
           setRequests([]);
+        } else if (data.type === 'request_cancelled') {
+          // Remove the cancelled request from the list
+          setRequests(prev => prev.filter(r => r.id !== data.request_id));
+        } else if (data.type === 'request_taken') {
+          // Remove the taken request from the list
+          setRequests(prev => prev.filter(r => r.id !== data.request_id));
+        } else if (data.type === 'accept_failed') {
+          // Mark the request as unavailable with a message, then slide it away
+          const requestId = data.request_id;
+
+          if (requestId) {
+            // Clear any existing timeout for this request
+            if (timeoutRefs.current[requestId]) {
+              clearTimeout(timeoutRefs.current[requestId]);
+            }
+
+            setUnavailableRequests(prev => ({
+              ...prev,
+              [requestId]: data.message || 'This request is no longer available'
+            }));
+
+            // Remove after slide-out animation completes
+            const timeoutId = setTimeout(() => {
+              setRequests(prev => prev.filter(r => r.id !== requestId));
+              setUnavailableRequests(prev => {
+                const newState = { ...prev };
+                delete newState[requestId];
+                return newState;
+              });
+              // Clean up the timeout reference
+              delete timeoutRefs.current[requestId];
+            }, 500);
+
+            // Store the timeout reference
+            timeoutRefs.current[requestId] = timeoutId;
+          }
         }
       };
 
@@ -132,7 +172,7 @@ function InstantRequests() {
   return (
     <div className="instant-requests-page">
       <div className="page-header">
-        <h1>⚡ Instant Requests</h1>
+        <h1><HiLightningBolt /> Instant Requests</h1>
         <p>Receive and respond to instant tutoring requests from students</p>
       </div>
 
@@ -161,7 +201,7 @@ function InstantRequests() {
       {/* Active session */}
       {activeSession && (
         <div className="active-session-card">
-          <h3>🎥 Active Session</h3>
+          <h3><HiVideoCamera /> Active Session</h3>
           <p>{activeSession.topic}</p>
           <button onClick={handleJoinSession} className="action-button join-btn">
             Join Video Session
@@ -176,38 +216,58 @@ function InstantRequests() {
           
           {requests.length > 0 ? (
             <div className="requests-list">
-              {requests.map(request => (
-                <div key={request.id} className="request-card">
-                  <div className="request-info">
-                    <h3>{request.student_name}</h3>
-                    <p className="request-subject">{request.subject} - {request.grade}</p>
-                    {request.topic && (
-                      <p className="request-topic">{request.topic}</p>
+              {requests.map(request => {
+                const isUnavailable = unavailableRequests[request.id];
+                return (
+                  <div 
+                    key={request.id} 
+                    className={`request-card ${isUnavailable ? 'unavailable' : ''}`}
+                  >
+                    {isUnavailable ? (
+                      <div className="request-unavailable-message">
+                        <div className="unavailable-icon">
+                          <HiX />
+                        </div>
+                        <div className="unavailable-text">
+                          <h4>Request No Longer Available</h4>
+                          <p>The student has disconnected or found another tutor.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="request-info">
+                          <h3>{request.student_name}</h3>
+                          <p className="request-subject">{request.subject} - {request.grade}</p>
+                          {request.topic && (
+                            <p className="request-topic">{request.topic}</p>
+                          )}
+                          <p className="request-expires">
+                            Expires: {new Date(request.expires_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="request-actions">
+                          <button
+                            onClick={() => handleAccept(request.id)}
+                            className="action-button accept-btn"
+                          >
+                            <HiCheck /> Accept
+                          </button>
+                          <button
+                            onClick={() => handleDecline(request.id)}
+                            className="action-button secondary decline-btn"
+                          >
+                            <HiX /> Decline
+                          </button>
+                        </div>
+                      </>
                     )}
-                    <p className="request-expires">
-                      Expires: {new Date(request.expires_at).toLocaleTimeString()}
-                    </p>
                   </div>
-                  <div className="request-actions">
-                    <button 
-                      onClick={() => handleAccept(request.id)}
-                      className="action-button accept-btn"
-                    >
-                      ✓ Accept
-                    </button>
-                    <button 
-                      onClick={() => handleDecline(request.id)}
-                      className="action-button secondary decline-btn"
-                    >
-                      ✕ Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="empty-state-small">
-              <span className="waiting-icon">👀</span>
+              <span className="waiting-icon"><HiEye /></span>
               <p>Waiting for student requests...</p>
               <p className="muted">You'll receive notifications when students need help</p>
             </div>

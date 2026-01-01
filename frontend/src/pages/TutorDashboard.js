@@ -1,5 +1,6 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { HiHome, HiLightningBolt, HiCalendar, HiChat, HiCurrencyDollar, HiCog, HiLogout } from 'react-icons/hi';
 import './Dashboard.css';
 
 // Dashboard pages
@@ -36,34 +37,34 @@ function TutorDashboard() {
 
         <nav className="sidebar-nav">
           <NavLink to="/tutor" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">🏠</span>
+            <span className="nav-icon"><HiHome /></span>
             <span>Dashboard</span>
           </NavLink>
           <NavLink to="/tutor/requests" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">⚡</span>
+            <span className="nav-icon"><HiLightningBolt /></span>
             <span>Instant Requests</span>
           </NavLink>
           <NavLink to="/tutor/sessions" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">📅</span>
+            <span className="nav-icon"><HiCalendar /></span>
             <span>My Sessions</span>
           </NavLink>
           <NavLink to="/tutor/messages" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">💬</span>
+            <span className="nav-icon"><HiChat /></span>
             <span>Messages</span>
           </NavLink>
           <NavLink to="/tutor/earnings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">💰</span>
+            <span className="nav-icon"><HiCurrencyDollar /></span>
             <span>Earnings</span>
           </NavLink>
           <NavLink to="/tutor/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon">⚙️</span>
+            <span className="nav-icon"><HiCog /></span>
             <span>Settings</span>
           </NavLink>
         </nav>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-button">
-            <span className="nav-icon">🚪</span>
+            <span className="nav-icon"><HiLogout /></span>
             <span>Logout</span>
           </button>
         </div>
