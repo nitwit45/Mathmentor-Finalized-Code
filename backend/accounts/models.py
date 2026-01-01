@@ -50,6 +50,7 @@ class User(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     verification_code_expires_at = models.DateTimeField(null=True, blank=True)
+    stripe_customer_id = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -88,4 +89,32 @@ class User(AbstractUser):
             self.save()
             return True
         return False
+
+
+class PaymentMethod(models.Model):
+    """Saved payment methods (cards) for users."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='payment_methods'
+    )
+    stripe_payment_method_id = models.CharField(max_length=255)
+    card_brand = models.CharField(max_length=50)  # visa, mastercard, etc.
+    card_last4 = models.CharField(max_length=4)
+    card_exp_month = models.PositiveIntegerField()
+    card_exp_year = models.PositiveIntegerField()
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-is_default', '-created_at']
+    
+    def __str__(self):
+        return f"{self.card_brand} ****{self.card_last4} ({self.user.email})"
+    
+    def save(self, *args, **kwargs):
+        # If this is being set as default, unset other defaults
+        if self.is_default:
+            PaymentMethod.objects.filter(user=self.user, is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)
 

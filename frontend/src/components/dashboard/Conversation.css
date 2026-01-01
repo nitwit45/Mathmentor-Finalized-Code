@@ -2,7 +2,9 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 2 * var(--spacing-xl));
-  max-width: 800px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -45,10 +47,71 @@
   flex: 1;
 }
 
+.user-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.connection-status.connected {
+  color: #10b981;
+}
+
+.connection-status.disconnected {
+  color: #f59e0b;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulse 2s infinite;
+}
+
+.connection-status.connected .status-dot {
+  animation: none;
+  background-color: #10b981;
+}
+
+.connection-status.disconnected .status-dot {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .conversation-user-info .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--color-primary-light);
+}
+
+.conversation-user-info .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  width: 100%;
+  height: 100%;
   background: var(--gradient-accent);
   display: flex;
   align-items: center;
@@ -224,4 +287,109 @@
   cursor: not-allowed;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .conversation-page {
+    height: calc(100vh - 60px - 2 * var(--spacing-md));
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .conversation-header-bar {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .conversation-user-info .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .conversation-user-info h2 {
+    font-size: 14px;
+  }
+
+  .messages-container {
+    padding: var(--spacing-md);
+  }
+
+  .message-bubble {
+    max-width: 85%;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .message-bubble p {
+    font-size: 14px;
+  }
+
+  .message-input-form {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-xs);
+  }
+
+  .message-input-form input {
+    padding: var(--spacing-sm);
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .message-input-form button {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .conversation-page {
+    height: calc(100vh - 60px - 2 * var(--spacing-sm));
+  }
+
+  .conversation-header-bar {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .user-status-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .connection-status {
+    font-size: 10px;
+  }
+
+  .messages-container {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+
+  .message-bubble {
+    max-width: 90%;
+  }
+
+  .date-divider span {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  .message-time {
+    font-size: 9px;
+  }
+}
+
+/* Safe area for iOS devices with notch */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .message-input-form {
+    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
+  }
+}
 

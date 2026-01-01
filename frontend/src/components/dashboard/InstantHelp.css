@@ -1,5 +1,6 @@
 .instant-help-page {
-  max-width: 600px;
+  width: 100%;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -119,6 +120,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 48px;
+  color: var(--color-primary-light);
 }
 
 .searching-state h2 {
@@ -150,6 +152,7 @@
   font-size: 64px;
   display: block;
   margin-bottom: var(--spacing-md);
+  color: #4ade80;
 }
 
 .match-success h2 {
@@ -186,4 +189,94 @@
   font-size: 18px;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .instant-help-page {
+    max-width: 100%;
+  }
+
+  .instant-form-card {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-sm);
+  }
+
+  .searching-animation {
+    width: 100px;
+    height: 100px;
+  }
+
+  .search-icon {
+    font-size: 40px;
+  }
+
+  .searching-state {
+    padding: var(--spacing-xl);
+  }
+
+  .searching-state h2 {
+    font-size: 20px;
+  }
+
+  .matched-state {
+    padding: var(--spacing-xl);
+  }
+
+  .success-icon {
+    font-size: 48px;
+  }
+
+  .match-success h2 {
+    font-size: 20px;
+  }
+
+  .session-info-card {
+    padding: var(--spacing-md);
+  }
+
+  .join-btn.large {
+    width: 100%;
+    padding: var(--spacing-md) !important;
+    font-size: 16px;
+  }
+
+  .instant-info {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+  }
+
+  .instant-info ol {
+    padding-left: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .instant-form-card {
+    padding: var(--spacing-md);
+  }
+
+  .searching-animation {
+    width: 80px;
+    height: 80px;
+  }
+
+  .search-icon {
+    font-size: 32px;
+  }
+
+  .searching-state h2 {
+    font-size: 18px;
+  }
+
+  .searching-state p {
+    font-size: 14px;
+  }
+
+  .success-icon {
+    font-size: 40px;
+  }
+
+  .session-info-card h3 {
+    font-size: 16px;
+  }
+}
 

@@ -1,5 +1,7 @@
 .session-detail-page {
-  max-width: 800px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .session-detail-card {
@@ -170,4 +172,86 @@
   justify-content: flex-end;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .session-detail-page {
+    max-width: 100%;
+  }
+
+  .session-detail-card {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+  }
+
+  .session-detail-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+  }
+
+  .session-detail-header h1 {
+    font-size: 20px;
+  }
+
+  .status-badge.large {
+    align-self: flex-start;
+  }
+
+  .session-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .session-notes-section {
+    padding: var(--spacing-md);
+  }
+
+  .session-actions {
+    flex-direction: column;
+  }
+
+  .session-actions .action-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .join-btn.large {
+    padding: var(--spacing-md) !important;
+  }
+
+  .rating-select {
+    justify-content: center;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .action-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .session-detail-card {
+    padding: var(--spacing-sm);
+  }
+
+  .session-detail-header h1 {
+    font-size: 18px;
+  }
+
+  .session-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-value.price {
+    font-size: 16px;
+  }
+
+  .star-btn {
+    font-size: 28px;
+    padding: var(--spacing-xs);
+  }
+}
 

@@ -198,7 +198,30 @@ class TutorDetailView(generics.RetrieveAPIView):
         return TutorProfile.objects.filter(is_profile_complete=True).select_related('user')
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
+        tutor_id = kwargs.get('id')
+
+        # Try to get by TutorProfile ID first (existing behavior)
+        instance = self.get_queryset().filter(id=tutor_id).first()
+
+        if not instance:
+            # If not found, try to get by User ID (new behavior for conversation flow)
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(id=tutor_id)
+                instance = self.get_queryset().filter(user=user).first()
+
+                if not instance:
+                    return Response({
+                        'success': False,
+                        'message': 'Tutor not found'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            except User.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': 'Tutor not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.get_serializer(instance)
         
         # Get reviews for this tutor
@@ -297,17 +320,29 @@ class SessionViewSet(viewsets.ViewSet):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get tutor by profile ID (what frontend sends)
+        # Get tutor by profile ID or user ID (frontend sends either)
+        tutor_id = serializer.validated_data['tutor_id']
         try:
+            # First try to get by TutorProfile ID (existing behavior)
             tutor_profile = TutorProfile.objects.select_related('user').get(
-                id=serializer.validated_data['tutor_id'],
+                id=tutor_id,
                 is_profile_complete=True
             )
         except TutorProfile.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Tutor not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+            # If not found, try to get by User ID (new behavior for conversation flow)
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(id=tutor_id)
+                tutor_profile = TutorProfile.objects.select_related('user').get(
+                    user=user,
+                    is_profile_complete=True
+                )
+            except (User.DoesNotExist, TutorProfile.DoesNotExist):
+                return Response({
+                    'success': False,
+                    'message': 'Tutor not found'
+                }, status=status.HTTP_404_NOT_FOUND)
 
         # Calculate price
         from decimal import Decimal
@@ -702,19 +737,24 @@ class ConversationViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'])
     def send_message(self, request, pk=None):
         """Send a message in a conversation (REST fallback)."""
+        # First check if conversation exists at all
         try:
-            conversation = Conversation.objects.get(
-                id=pk,
-                participants=request.user
-            )
+            conversation = Conversation.objects.get(id=pk)
         except Conversation.DoesNotExist:
             return Response({
                 'success': False,
                 'message': 'Conversation not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
+        # Check if user is a participant in this conversation
+        if request.user not in conversation.participants.all():
+            return Response({
+                'success': False,
+                'message': 'You do not have access to this conversation'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         content = request.data.get('content')
-        if not content:
+        if not content or not content.strip():
             return Response({
                 'success': False,
                 'message': 'Message content is required'
@@ -723,7 +763,7 @@ class ConversationViewSet(viewsets.ViewSet):
         message = Message.objects.create(
             conversation=conversation,
             sender=request.user,
-            content=content
+            content=content.strip()
         )
         conversation.updated_at = timezone.now()
         conversation.save()
@@ -735,7 +775,418 @@ class ConversationViewSet(viewsets.ViewSet):
         }, status=status.HTTP_201_CREATED)
 
 
-# ==================== Stripe Webhook ====================
+# ==================== Stripe Payment ====================
+
+def get_or_create_stripe_customer(user):
+    """Get or create a Stripe customer for the user."""
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+    
+    customer = stripe.Customer.create(
+        email=user.email,
+        name=f"{user.first_name} {user.last_name}".strip() or user.email,
+        metadata={'user_id': str(user.id)}
+    )
+    user.stripe_customer_id = customer.id
+    user.save()
+    return customer.id
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_payment_methods(request):
+    """Get user's saved payment methods."""
+    from accounts.models import PaymentMethod
+    
+    payment_methods = PaymentMethod.objects.filter(user=request.user)
+    data = [{
+        'id': pm.id,
+        'stripe_payment_method_id': pm.stripe_payment_method_id,
+        'card_brand': pm.card_brand,
+        'card_last4': pm.card_last4,
+        'card_exp_month': pm.card_exp_month,
+        'card_exp_year': pm.card_exp_year,
+        'is_default': pm.is_default,
+    } for pm in payment_methods]
+    
+    return Response({
+        'success': True,
+        'data': data
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_setup_intent(request):
+    """Create a SetupIntent for adding a new card."""
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
+        return Response({
+            'success': False,
+            'message': 'Stripe is not configured. Please add your Stripe API keys.',
+            'demo_mode': True
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        customer_id = get_or_create_stripe_customer(request.user)
+        
+        setup_intent = stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=['card'],
+        )
+        
+        return Response({
+            'success': True,
+            'data': {
+                'client_secret': setup_intent.client_secret,
+                'setup_intent_id': setup_intent.id,
+            }
+        })
+    except stripe.error.StripeError as e:
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_payment_method(request):
+    """Save a payment method after SetupIntent confirmation."""
+    from accounts.models import PaymentMethod
+    
+    payment_method_id = request.data.get('payment_method_id')
+    set_as_default = request.data.get('set_as_default', True)
+    
+    if not payment_method_id:
+        return Response({
+            'success': False,
+            'message': 'Payment method ID is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
+        return Response({
+            'success': False,
+            'message': 'Stripe is not configured',
+            'demo_mode': True
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Retrieve the payment method from Stripe
+        pm = stripe.PaymentMethod.retrieve(payment_method_id)
+        
+        # Check if already saved
+        if PaymentMethod.objects.filter(
+            user=request.user,
+            stripe_payment_method_id=payment_method_id
+        ).exists():
+            return Response({
+                'success': False,
+                'message': 'This card is already saved'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Save locally
+        is_first = not PaymentMethod.objects.filter(user=request.user).exists()
+        payment_method = PaymentMethod.objects.create(
+            user=request.user,
+            stripe_payment_method_id=payment_method_id,
+            card_brand=pm.card.brand,
+            card_last4=pm.card.last4,
+            card_exp_month=pm.card.exp_month,
+            card_exp_year=pm.card.exp_year,
+            is_default=set_as_default or is_first,
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Card saved successfully',
+            'data': {
+                'id': payment_method.id,
+                'card_brand': payment_method.card_brand,
+                'card_last4': payment_method.card_last4,
+                'is_default': payment_method.is_default,
+            }
+        })
+    except stripe.error.StripeError as e:
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_payment_method(request, payment_method_id):
+    """Delete a saved payment method."""
+    from accounts.models import PaymentMethod
+    
+    try:
+        pm = PaymentMethod.objects.get(id=payment_method_id, user=request.user)
+    except PaymentMethod.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Payment method not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Detach from Stripe if configured
+    if settings.STRIPE_SECRET_KEY and not settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
+        try:
+            stripe.PaymentMethod.detach(pm.stripe_payment_method_id)
+        except stripe.error.StripeError:
+            pass  # Card may already be detached
+    
+    was_default = pm.is_default
+    pm.delete()
+    
+    # If deleted card was default, set another as default
+    if was_default:
+        next_pm = PaymentMethod.objects.filter(user=request.user).first()
+        if next_pm:
+            next_pm.is_default = True
+            next_pm.save()
+    
+    return Response({
+        'success': True,
+        'message': 'Card removed successfully'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_default_payment_method(request, payment_method_id):
+    """Set a payment method as default."""
+    from accounts.models import PaymentMethod
+    
+    try:
+        pm = PaymentMethod.objects.get(id=payment_method_id, user=request.user)
+    except PaymentMethod.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Payment method not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    pm.is_default = True
+    pm.save()
+    
+    return Response({
+        'success': True,
+        'message': 'Default card updated'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def pay_with_saved_card(request, session_id):
+    """Pay for a session using a saved card."""
+    from accounts.models import PaymentMethod
+    
+    user = request.user
+    payment_method_id = request.data.get('payment_method_id')
+    
+    if user.role != 'STUDENT':
+        return Response({
+            'success': False,
+            'message': 'Only students can pay for sessions'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        session = Session.objects.get(id=session_id, student=user)
+    except Session.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Session not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if session.status not in ['confirmed', 'pending_payment']:
+        return Response({
+            'success': False,
+            'message': f'Session cannot be paid for. Current status: {session.status}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get payment method
+    if payment_method_id:
+        try:
+            pm = PaymentMethod.objects.get(id=payment_method_id, user=user)
+        except PaymentMethod.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Payment method not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+    else:
+        # Use default
+        pm = PaymentMethod.objects.filter(user=user, is_default=True).first()
+        if not pm:
+            return Response({
+                'success': False,
+                'message': 'No payment method found. Please add a card first.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
+        return Response({
+            'success': False,
+            'message': 'Stripe is not configured. Please add your Stripe API keys.',
+            'demo_mode': True
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        customer_id = get_or_create_stripe_customer(user)
+        
+        # Create and confirm PaymentIntent
+        payment_intent = stripe.PaymentIntent.create(
+            amount=int(session.price * 100),  # Convert to pence
+            currency='gbp',
+            customer=customer_id,
+            payment_method=pm.stripe_payment_method_id,
+            off_session=True,
+            confirm=True,
+            metadata={
+                'session_id': str(session.id),
+            },
+            description=f'Tutoring Session: {session.topic}',
+        )
+        
+        if payment_intent.status == 'succeeded':
+            session.status = Session.Status.SCHEDULED
+            session.stripe_payment_intent_id = payment_intent.id
+            session.generate_meeting_link()
+            session.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Payment successful! Session is now scheduled.',
+                'data': {
+                    'session_id': str(session.id),
+                    'status': session.status,
+                    'payment_intent_id': payment_intent.id,
+                }
+            })
+        else:
+            return Response({
+                'success': False,
+                'message': f'Payment failed. Status: {payment_intent.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except stripe.error.CardError as e:
+        return Response({
+            'success': False,
+            'message': f'Card error: {e.user_message}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except stripe.error.StripeError as e:
+        return Response({
+            'success': False,
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stripe_config(request):
+    """Get Stripe publishable key for frontend."""
+    publishable_key = settings.STRIPE_PUBLISHABLE_KEY
+    is_configured = bool(publishable_key and not publishable_key.startswith('pk_test_placeholder'))
+    
+    return Response({
+        'success': True,
+        'data': {
+            'publishable_key': publishable_key if is_configured else None,
+            'is_configured': is_configured,
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_checkout_session(request, session_id):
+    """Create a Stripe checkout session for payment."""
+    user = request.user
+    
+    # Only students can pay for sessions
+    if user.role != 'STUDENT':
+        return Response({
+            'success': False,
+            'message': 'Only students can pay for sessions'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        session = Session.objects.get(id=session_id, student=user)
+    except Session.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Session not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Only allow payment for confirmed sessions
+    if session.status not in ['confirmed', 'pending_payment']:
+        return Response({
+            'success': False,
+            'message': f'Session cannot be paid for. Current status: {session.status}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
+        # For demo/test mode without real Stripe keys, simulate payment success
+        session.status = Session.Status.SCHEDULED
+        session.stripe_payment_intent_id = 'demo_payment_' + str(session.id)
+        session.generate_meeting_link()
+        session.save()
+        
+        return Response({
+            'success': True,
+            'demo_mode': True,
+            'message': 'Payment simulated (demo mode). Session is now scheduled.',
+            'data': {
+                'session_id': str(session.id),
+                'status': session.status,
+            }
+        })
+    
+    try:
+        # Get frontend URL for redirects
+        frontend_url = settings.FRONTEND_URL or 'http://localhost:3000'
+        
+        # Create Stripe checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': f'Tutoring Session: {session.topic}',
+                        'description': f'{session.duration} min session with {session.tutor.first_name} {session.tutor.last_name}',
+                    },
+                    'unit_amount': int(session.price * 100),  # Convert to pence
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{frontend_url}/student/sessions/{session.id}?payment=success',
+            cancel_url=f'{frontend_url}/student/sessions/{session.id}?payment=cancelled',
+            metadata={
+                'session_id': str(session.id),
+            },
+            customer_email=user.email,
+        )
+        
+        # Save the checkout session ID
+        session.stripe_checkout_session_id = checkout_session.id
+        session.save()
+        
+        return Response({
+            'success': True,
+            'data': {
+                'checkout_url': checkout_session.url,
+                'checkout_session_id': checkout_session.id,
+            }
+        })
+        
+    except stripe.error.StripeError as e:
+        return Response({
+            'success': False,
+            'message': str(e.user_message if hasattr(e, 'user_message') else str(e))
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -744,14 +1195,23 @@ def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError:
-        return Response({'error': 'Invalid payload'}, status=400)
-    except stripe.error.SignatureVerificationError:
-        return Response({'error': 'Invalid signature'}, status=400)
+    # If no webhook secret configured, skip signature verification (dev mode)
+    if settings.STRIPE_WEBHOOK_SECRET and not settings.STRIPE_WEBHOOK_SECRET.startswith('whsec_placeholder'):
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError:
+            return Response({'error': 'Invalid payload'}, status=400)
+        except stripe.error.SignatureVerificationError:
+            return Response({'error': 'Invalid signature'}, status=400)
+    else:
+        # Dev mode - parse without verification
+        import json
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid payload'}, status=400)
 
     if event['type'] == 'checkout.session.completed':
         checkout_session = event['data']['object']
@@ -762,6 +1222,7 @@ def stripe_webhook(request):
                 session = Session.objects.get(id=session_id)
                 session.status = Session.Status.SCHEDULED
                 session.stripe_payment_intent_id = checkout_session.get('payment_intent', '')
+                session.stripe_checkout_session_id = checkout_session.get('id', '')
                 session.generate_meeting_link()
                 session.save()
             except Session.DoesNotExist:

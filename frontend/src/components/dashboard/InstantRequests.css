@@ -1,5 +1,7 @@
 .instant-requests-page {
-  max-width: 800px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Availability card */
@@ -289,4 +291,85 @@
   margin: 0;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .instant-requests-page {
+    max-width: 100%;
+  }
+
+  .availability-card {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    text-align: center;
+  }
+
+  .availability-status {
+    justify-content: center;
+  }
+
+  .availability-info p {
+    text-align: center;
+  }
+
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+
+  .request-info h3 {
+    font-size: 16px;
+  }
+
+  .request-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .request-actions .action-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .active-session-card {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .availability-card {
+    padding: var(--spacing-md);
+  }
+
+  .availability-status {
+    font-size: 16px;
+  }
+
+  .request-card {
+    padding: var(--spacing-sm);
+  }
+
+  .request-subject {
+    font-size: 14px;
+  }
+
+  .request-topic {
+    font-size: 13px;
+  }
+
+  .unavailable-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .unavailable-icon svg {
+    font-size: 20px;
+  }
+
+  .waiting-icon {
+    font-size: 40px;
+  }
+}
 

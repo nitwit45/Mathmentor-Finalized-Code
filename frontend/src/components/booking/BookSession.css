@@ -1,5 +1,7 @@
 .book-session-page {
-  max-width: 1000px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .booking-subtitle {
@@ -18,6 +20,7 @@
   border-radius: var(--radius-md);
   padding: var(--spacing-xl);
   border: 1px solid var(--border-light);
+  overflow: visible;
 }
 
 .booking-form-section h1 {
@@ -31,12 +34,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  overflow: visible;
 }
 
 .booking-form-section .form-group {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  position: relative;
+  overflow: visible;
 }
 
 .booking-form-section label {
@@ -222,13 +228,132 @@
   margin-top: var(--spacing-md);
 }
 
+/* Mobile responsiveness */
 @media (max-width: 768px) {
+  .book-session-page {
+    max-width: 100%;
+  }
+
   .booking-layout {
     grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
   }
-  
+
+  .booking-form-section {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-sm);
+  }
+
+  .booking-form-section h1 {
+    font-size: 20px;
+  }
+
+  .booking-form-section input,
+  .booking-form-section select,
+  .booking-form-section textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
   .booking-summary {
     position: static;
+    order: -1;
+  }
+
+  .summary-card {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-sm);
+  }
+
+  .summary-card h3 {
+    font-size: 16px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .tutor-summary {
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .tutor-summary .tutor-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .summary-row.total {
+    font-size: 16px;
+  }
+
+  .booking-success {
+    padding: var(--spacing-xl);
+    margin: var(--spacing-md) auto;
+    border-radius: var(--radius-md);
+  }
+
+  .booking-success .success-icon {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+  }
+
+  .booking-success h2 {
+    font-size: 20px;
   }
 }
 
+@media (max-width: 480px) {
+  .booking-form-section {
+    padding: var(--spacing-md);
+  }
+
+  .booking-form-section h1 {
+    font-size: 18px;
+  }
+
+  .booking-subtitle {
+    font-size: 14px;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .summary-card {
+    padding: var(--spacing-md);
+  }
+
+  .tutor-summary .tutor-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .tutor-summary h4 {
+    font-size: 14px;
+  }
+
+  .summary-row {
+    font-size: 13px;
+  }
+
+  .summary-row.total {
+    font-size: 14px;
+  }
+
+  .payment-info p {
+    font-size: 12px;
+  }
+
+  .booking-success {
+    padding: var(--spacing-lg);
+  }
+
+  .booking-success .success-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+
+  .booking-success h2 {
+    font-size: 18px;
+  }
+
+  .booking-success p {
+    font-size: 14px;
+  }
+}

@@ -1,5 +1,7 @@
-import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { getMyProfile } from '../services/api';
 import { HiHome, HiLightningBolt, HiCalendar, HiChat, HiCurrencyDollar, HiCog, HiLogout } from 'react-icons/hi';
 import './Dashboard.css';
 
@@ -17,22 +19,95 @@ import InstantNotification from '../components/common/InstantNotification';
 function TutorDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [profile, setProfile] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const response = await getMyProfile();
+        if (response.success) {
+          setProfile(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      }
+    }
+
+    loadProfile();
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const handleLogout = async () => {
+    setMobileMenuOpen(false);
     await logout();
     navigate('/');
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
   return (
     <div className="dashboard-layout">
       {/* Global instant request notifications */}
       <InstantNotification />
-      
+
+      {/* Mobile Header */}
+      <header className="mobile-header">
+        <h1 className="logo">Mathmentor</h1>
+        <button 
+          className={`hamburger-btn ${mobileMenuOpen ? 'open' : ''}`}
+          onClick={toggleMobileMenu}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </header>
+
+      {/* Mobile Backdrop */}
+      <div 
+        className={`sidebar-backdrop ${mobileMenuOpen ? 'visible' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className="dashboard-sidebar">
+      <aside className={`dashboard-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h1 className="logo">Mathmentor</h1>
-          <p className="user-greeting">Hi, {user?.first_name || 'Tutor'}!</p>
+          <div className="user-profile-section">
+            {profile?.profile_image_url ? (
+              <img
+                src={profile.profile_image_url}
+                alt="Profile"
+                className="sidebar-profile-picture"
+              />
+            ) : (
+              <div className="sidebar-profile-placeholder">
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </div>
+            )}
+            <p className="user-greeting">Hi, {user?.first_name || 'Tutor'}!</p>
+          </div>
         </div>
 
         <nav className="sidebar-nav">

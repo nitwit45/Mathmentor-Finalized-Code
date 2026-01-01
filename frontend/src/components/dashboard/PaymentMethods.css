@@ -1,0 +1,273 @@
+.payment-methods-page {
+  width: 100%;
+  max-width: 700px;
+}
+
+/* Saved Cards */
+.saved-cards-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.card-item:hover {
+  border-color: var(--color-primary-light);
+}
+
+.card-item.default {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(200, 155, 60, 0.05) 0%, rgba(200, 155, 60, 0.02) 100%);
+}
+
+.card-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.card-brand-icon {
+  width: 50px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-number {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  letter-spacing: 1px;
+}
+
+.card-expiry {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.default-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(200, 155, 60, 0.2);
+  color: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  font-size: 16px;
+}
+
+.set-default-btn {
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+}
+
+.set-default-btn:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.2);
+}
+
+.delete-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add Card Form */
+.add-card-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+.add-card-form h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 18px;
+}
+
+.card-element-wrapper {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.card-element-wrapper:focus-within {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 2px rgba(200, 155, 60, 0.2);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
+}
+
+.add-card-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Stripe Not Configured */
+.stripe-not-configured {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.stripe-not-configured .big-icon {
+  font-size: 48px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.stripe-not-configured h3 {
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.stripe-not-configured p {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.stripe-not-configured pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: var(--color-primary-light);
+  font-size: 13px;
+  overflow-x: auto;
+  margin-top: var(--spacing-md);
+}
+
+.stripe-not-configured code {
+  background: rgba(200, 155, 60, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--color-primary-light);
+}
+
+/* Test Cards Info */
+.test-cards-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.test-cards-info h4 {
+  color: #60a5fa;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 14px;
+}
+
+.test-cards-info ul {
+  margin: 0 0 var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+}
+
+.test-cards-info li {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 4px;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.test-cards-info li strong {
+  color: var(--text-primary);
+}
+
+.test-cards-info > p {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 12px;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .card-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+

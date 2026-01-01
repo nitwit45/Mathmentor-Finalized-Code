@@ -120,3 +120,61 @@
   color: var(--text-secondary);
   text-align: center;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .role-selection {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-lg) 0;
+  }
+
+  .role-button {
+    padding: var(--spacing-lg);
+    flex-direction: row;
+    gap: var(--spacing-md);
+    text-align: left;
+  }
+
+  .role-icon {
+    font-size: 36px !important;
+    margin-bottom: 0;
+  }
+
+  .role-button h2 {
+    font-size: 18px;
+    text-align: left;
+  }
+
+  .role-button p {
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .role-button:hover::after {
+    width: 400px;
+    height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .role-selection {
+    margin: var(--spacing-md) 0;
+  }
+
+  .role-button {
+    padding: var(--spacing-md);
+  }
+
+  .role-icon {
+    font-size: 32px !important;
+  }
+
+  .role-button h2 {
+    font-size: 16px;
+  }
+
+  .role-button p {
+    font-size: 12px;
+  }
+}

@@ -1,5 +1,5 @@
 .dashboard-home {
-  max-width: 1200px;
+  width: 100%;
 }
 
 .dashboard-loading {
@@ -58,6 +58,7 @@
 
 .quick-action-card .action-icon {
   font-size: 32px;
+  color: var(--color-primary-light);
 }
 
 .quick-action-card h3 {
@@ -91,6 +92,7 @@
 .stat-card .stat-icon {
   font-size: 24px;
   margin-bottom: var(--spacing-sm);
+  color: var(--color-primary-light);
 }
 
 .stat-card .stat-icon.available {
@@ -260,6 +262,10 @@
   font-size: 13px;
 }
 
+.tutor-rating svg {
+  color: var(--color-primary-light);
+}
+
 .available-badge {
   position: absolute;
   top: var(--spacing-sm);
@@ -288,4 +294,118 @@
   opacity: 0.7;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .quick-action-card {
+    padding: var(--spacing-md);
+  }
+
+  .quick-action-card .action-icon {
+    font-size: 28px;
+  }
+
+  .quick-action-card h3 {
+    font-size: 15px;
+  }
+
+  .quick-action-card:hover {
+    transform: none;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .stat-card {
+    padding: var(--spacing-md);
+  }
+
+  .stat-card .stat-value {
+    font-size: 24px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .session-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .session-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .tutor-item {
+    padding: var(--spacing-sm);
+  }
+
+  .tutor-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--spacing-md);
+    text-align: left;
+  }
+
+  .stat-card .stat-icon {
+    margin-bottom: 0;
+  }
+
+  .quick-action-card .action-icon {
+    font-size: 24px;
+  }
+
+  .quick-action-card h3 {
+    font-size: 14px;
+  }
+
+  .quick-action-card p {
+    font-size: 12px;
+  }
+
+  .session-info h4 {
+    font-size: 14px;
+  }
+
+  .session-info p {
+    font-size: 12px;
+  }
+
+  .tutor-info h4 {
+    font-size: 14px;
+  }
+
+  .tutor-info p {
+    font-size: 12px;
+  }
+
+  .available-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
 

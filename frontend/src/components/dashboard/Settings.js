@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getMyProfile, updateMyProfile, getChoices } from '../../services/api';
+import { getMyProfile, updateMyProfile, updateMyProfileWithImage, getChoices } from '../../services/api';
 import './Settings.css';
 
 function Settings() {
@@ -11,6 +11,10 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
 
   const isTutor = user?.role === 'TUTOR';
 
@@ -54,6 +58,75 @@ function Settings() {
     }
   };
 
+  const handleProfileImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB');
+        return;
+      }
+
+      setProfileImageFile(file);
+      setError('');
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileImageUpload = async () => {
+    if (!profileImageFile) return;
+
+    setError('');
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('profile_image', profileImageFile);
+
+      const response = await updateMyProfileWithImage(formData);
+
+      if (response.success) {
+        setProfile(prev => ({
+          ...prev,
+          profile_image_url: response.data.profile_image_url
+        }));
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        setSuccess('Profile picture updated successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+
+        // Clear file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveProfileImage = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -77,7 +150,7 @@ function Settings() {
           };
 
       const response = await updateMyProfile(dataToSend);
-      
+
       if (response.success) {
         setSuccess('Profile updated successfully!');
         setTimeout(() => setSuccess(''), 3000);
@@ -103,6 +176,69 @@ function Settings() {
       <div className="page-header">
         <h1>Settings</h1>
         <p>Manage your profile and preferences</p>
+      </div>
+
+      {/* Profile Picture Section */}
+      <div className="settings-card profile-picture-card">
+        <h2>Profile Picture</h2>
+        <div className="profile-picture-section">
+          <div className="current-profile-picture">
+            {(profileImagePreview || profile?.profile_image_url) ? (
+              <img
+                src={profileImagePreview || profile.profile_image_url}
+                alt="Profile preview"
+                className="profile-image-preview"
+              />
+            ) : (
+              <div className="profile-picture-placeholder">
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </div>
+            )}
+          </div>
+
+          <div className="profile-picture-controls">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleProfileImageChange}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Choose Image
+            </button>
+
+            {profileImageFile && (
+              <>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={handleProfileImageUpload}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button cancel"
+                  onClick={handleRemoveProfileImage}
+                  disabled={uploadingImage}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="profile-picture-info">
+            <p>Upload a profile picture to help others recognize you.</p>
+            <p className="file-requirements">Supported formats: JPG, PNG. Max size: 5MB.</p>
+          </div>
+        </div>
       </div>
 
       <div className="settings-card">

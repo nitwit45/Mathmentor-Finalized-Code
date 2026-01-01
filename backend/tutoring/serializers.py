@@ -19,13 +19,31 @@ User = get_user_model()
 class UserBasicSerializer(serializers.ModelSerializer):
     """Basic user info serializer."""
     full_name = serializers.SerializerMethodField()
+    profile_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'role']
+        fields = ['id', 'email', 'first_name', 'last_name', 'full_name', 'role', 'profile_image_url']
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip() or obj.email
+
+    def get_profile_image_url(self, obj):
+        """Get profile image URL from user's profile (tutor or student)."""
+        try:
+            if hasattr(obj, 'tutor_profile') and obj.tutor_profile.profile_image:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.tutor_profile.profile_image.url)
+                return obj.tutor_profile.profile_image.url
+            elif hasattr(obj, 'student_profile') and obj.student_profile.profile_image:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.student_profile.profile_image.url)
+                return obj.student_profile.profile_image.url
+        except:
+            pass
+        return None
 
 
 class TutorProfileSerializer(serializers.ModelSerializer):

@@ -15,18 +15,41 @@ body {
 /* App Container - Fixed height to prevent scrollbar flicker */
 .app-container {
   min-height: 100vh;
-  height: 100vh;
   width: 100%;
-  overflow: hidden;
   position: relative;
 }
 
 /* Page Wrapper - Only affects right side content */
 .page-wrapper {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   position: relative;
-  overflow: hidden;
+}
+
+/* Desktop: prevent scrolling */
+@media (min-width: 769px) {
+  .app-container {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .page-wrapper {
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* Mobile: allow scrolling */
+@media (max-width: 768px) {
+  .app-container {
+    height: auto;
+    overflow: visible;
+  }
+  
+  .page-wrapper {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 .page-wrapper.fade-in .split-right {
@@ -62,10 +85,15 @@ body {
 /* Split Screen Layout */
 .split-container {
   min-height: 100vh;
-  height: 100vh;
   display: flex;
   position: relative;
-  overflow: hidden;
+}
+
+@media (min-width: 769px) {
+  .split-container {
+    height: 100vh;
+    overflow: hidden;
+  }
 }
 
 .split-left {
@@ -93,6 +121,9 @@ body {
 @media (max-width: 768px) {
   .split-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
   
   .split-left {
@@ -102,6 +133,8 @@ body {
   .split-right {
     flex: 1;
     width: 100%;
+    padding: var(--spacing-md);
+    overflow: visible;
   }
 }
 
@@ -185,20 +218,60 @@ body {
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .home-container {
+    padding: var(--spacing-lg);
+  }
+
   .home-content h1 {
-    font-size: 32px;
+    font-size: 36px;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .home-content p {
+    font-size: 18px;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .home-links {
+    gap: var(--spacing-sm);
+  }
+
+  .home-button {
+    padding: 12px var(--spacing-lg);
+    font-size: 15px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container {
+    padding: var(--spacing-md);
+  }
+
+  .home-content h1 {
+    font-size: 28px;
+    letter-spacing: 0.03em;
   }
   
   .home-content p {
-    font-size: 16px;
+    font-size: 15px;
+    line-height: 1.5;
   }
   
   .home-links {
     flex-direction: column;
+    width: 100%;
   }
   
   .home-button {
     width: 100%;
+    padding: 14px var(--spacing-md);
+    font-size: 14px;
+  }
+
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
   }
 }

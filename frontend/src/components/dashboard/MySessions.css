@@ -1,5 +1,5 @@
 .my-sessions-page {
-  max-width: 900px;
+  width: 100%;
   min-height: 0; /* Allow flex shrinking */
   display: flex;
   flex-direction: column;
@@ -205,22 +205,72 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
+.session-actions-inline .pay-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-actions-inline .pay-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
 .session-actions-inline .action-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Pending status styling */
+/* Status badge styling */
 .status-badge.pending_tutor {
   background: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.4);
 }
 
+.status-badge.confirmed {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.status-badge.scheduled {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+/* Mobile responsiveness */
 @media (max-width: 768px) {
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .session-card {
     grid-template-columns: 1fr;
     gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+
+  .session-card:hover {
+    transform: none;
   }
   
   .session-date-column {
@@ -231,6 +281,15 @@
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .session-time {
+    font-size: 16px;
+  }
+
+  .session-details h3 {
+    font-size: 15px;
   }
   
   .session-meta {
@@ -239,6 +298,81 @@
     justify-content: space-between;
     padding-top: var(--spacing-md);
     border-top: 1px solid var(--border-light);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .session-price {
+    font-size: 16px;
+  }
+
+  .session-actions-inline {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .session-actions-inline .action-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
   }
 }
 
+@media (max-width: 480px) {
+  .tabs {
+    padding: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .session-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  .session-date-column {
+    padding-bottom: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  .session-date {
+    font-size: 13px;
+  }
+
+  .session-time {
+    font-size: 14px;
+  }
+
+  .session-duration {
+    font-size: 12px;
+  }
+
+  .session-details h3 {
+    font-size: 14px;
+  }
+
+  .session-with {
+    font-size: 13px;
+  }
+
+  .session-notes {
+    font-size: 12px;
+  }
+
+  .session-meta {
+    padding-top: var(--spacing-sm);
+  }
+
+  .session-price {
+    font-size: 14px;
+  }
+
+  .session-actions-inline .action-button {
+    padding: 10px;
+    font-size: 12px;
+  }
+}

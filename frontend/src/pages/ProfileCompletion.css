@@ -190,14 +190,79 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 480px) {
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .profile-completion-container {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+    padding-top: var(--spacing-xl);
+  }
+
   .profile-completion-card {
     padding: var(--spacing-lg);
+    max-height: none;
+    border-radius: var(--radius-sm);
   }
-  
+
   .profile-completion-card h1 {
     font-size: 24px;
   }
+
+  .profile-form input,
+  .profile-form select,
+  .profile-form textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .multi-select-grid {
+    gap: var(--spacing-xs);
+  }
+
+  .select-chip {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .submit-button {
+    width: 100%;
+    min-height: 48px;
+  }
 }
 
+@media (max-width: 480px) {
+  .profile-completion-container {
+    padding: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+  }
+
+  .profile-completion-card {
+    padding: var(--spacing-md);
+  }
+  
+  .profile-completion-card h1 {
+    font-size: 20px;
+  }
+
+  .profile-completion-card .subtitle {
+    font-size: 14px;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .profile-form label {
+    font-size: 13px;
+  }
+
+  .char-count {
+    font-size: 11px;
+  }
+
+  .help-text {
+    font-size: 11px;
+    margin-left: 0;
+  }
+}
 

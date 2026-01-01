@@ -54,7 +54,15 @@ urlpatterns = [
     path('tutors/<int:id>/', views.TutorDetailView.as_view(), name='tutor-detail'),
     path('tutors/<int:tutor_id>/availability/', views.get_tutor_availability, name='tutor-availability'),
     
-    # Stripe webhook
+    # Stripe/Payment endpoints
+    path('stripe/config/', views.get_stripe_config, name='stripe-config'),
     path('stripe/webhook/', views.stripe_webhook, name='stripe-webhook'),
+    path('payment-methods/', views.get_payment_methods, name='payment-methods'),
+    path('payment-methods/setup-intent/', views.create_setup_intent, name='setup-intent'),
+    path('payment-methods/save/', views.save_payment_method, name='save-payment-method'),
+    path('payment-methods/<int:payment_method_id>/', views.delete_payment_method, name='delete-payment-method'),
+    path('payment-methods/<int:payment_method_id>/default/', views.set_default_payment_method, name='set-default-payment-method'),
+    path('sessions/<uuid:session_id>/checkout/', views.create_checkout_session, name='session-checkout'),
+    path('sessions/<uuid:session_id>/pay/', views.pay_with_saved_card, name='session-pay'),
 ]
 

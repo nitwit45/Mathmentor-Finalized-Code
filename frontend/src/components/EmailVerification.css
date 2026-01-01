@@ -75,6 +75,28 @@
   margin-bottom: var(--spacing-md);
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .verification-code-inputs {
+    gap: var(--spacing-sm);
+  }
+
+  .code-input {
+    width: 45px;
+    height: 55px;
+    font-size: 22px;
+  }
+
+  .resend-section {
+    margin-top: var(--spacing-md);
+  }
+
+  .resend-button {
+    min-height: 44px;
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}
+
 @media (max-width: 480px) {
   .code-input {
     width: 40px;
@@ -85,5 +107,17 @@
   .verification-code-inputs {
     gap: var(--spacing-xs);
   }
-}
 
+  .resend-text {
+    font-size: 13px;
+  }
+
+  .resend-button {
+    font-size: 13px;
+  }
+
+  .success-message {
+    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}

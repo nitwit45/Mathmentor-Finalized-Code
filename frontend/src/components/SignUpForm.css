@@ -9,9 +9,16 @@
   min-width: 0; /* Prevents grid items from overflowing */
 }
 
-@media (max-width: 600px) {
+/* Mobile responsiveness */
+@media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    gap: var(--spacing-xs);
   }
 }

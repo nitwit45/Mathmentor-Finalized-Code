@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTutorProfile, createBooking, getChoices } from '../../services/api';
 import { HiCheck, HiMail } from 'react-icons/hi';
+import TimePicker from '../common/TimePicker';
 import './BookSession.css';
 
 function BookSession() {
@@ -165,12 +166,10 @@ function BookSession() {
 
             <div className="form-group">
               <label>Select Time *</label>
-              <input
-                type="time"
-                name="time"
+              <TimePicker
                 value={formData.time}
                 onChange={handleChange}
-                required
+                placeholder="Choose a time"
               />
             </div>
 

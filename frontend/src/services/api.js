@@ -218,6 +218,57 @@ export async function getJaasToken(sessionId) {
   return apiRequest(`/api/sessions/${sessionId}/jaas-token/`);
 }
 
+export async function createCheckoutSession(sessionId) {
+  return apiRequest(`/api/sessions/${sessionId}/checkout/`, {
+    method: 'POST',
+  });
+}
+
+// ==================== Payment Methods ====================
+
+export async function getStripeConfig() {
+  return apiRequest('/api/stripe/config/');
+}
+
+export async function getPaymentMethods() {
+  return apiRequest('/api/payment-methods/');
+}
+
+export async function createSetupIntent() {
+  return apiRequest('/api/payment-methods/setup-intent/', {
+    method: 'POST',
+  });
+}
+
+export async function savePaymentMethod(paymentMethodId, setAsDefault = true) {
+  return apiRequest('/api/payment-methods/save/', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      payment_method_id: paymentMethodId,
+      set_as_default: setAsDefault 
+    }),
+  });
+}
+
+export async function deletePaymentMethod(paymentMethodId) {
+  return apiRequest(`/api/payment-methods/${paymentMethodId}/`, {
+    method: 'DELETE',
+  });
+}
+
+export async function setDefaultPaymentMethod(paymentMethodId) {
+  return apiRequest(`/api/payment-methods/${paymentMethodId}/default/`, {
+    method: 'POST',
+  });
+}
+
+export async function payWithSavedCard(sessionId, paymentMethodId) {
+  return apiRequest(`/api/sessions/${sessionId}/pay/`, {
+    method: 'POST',
+    body: JSON.stringify({ payment_method_id: paymentMethodId }),
+  });
+}
+
 // ==================== Messaging Endpoints ====================
 
 export async function getConversations() {

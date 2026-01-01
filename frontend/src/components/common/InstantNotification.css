@@ -226,13 +226,115 @@
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .instant-notifications-container {
-    top: 10px;
-    right: 10px;
-    left: 10px;
+    top: 70px; /* Below mobile header */
+    right: 12px;
+    left: 12px;
     max-width: none;
+  }
+
+  .instant-notification {
+    border-radius: 10px;
+  }
+
+  .notification-header {
+    padding: 10px 14px;
+  }
+
+  .notification-title {
+    font-size: 0.9rem;
+  }
+
+  .notification-body {
+    padding: 14px;
+  }
+
+  .student-info {
+    font-size: 0.9rem;
+  }
+
+  .request-description {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  .notification-actions {
+    padding: 10px 14px;
+    flex-direction: column;
+  }
+
+  .notification-actions button {
+    width: 100%;
+    padding: 12px;
+    min-height: 44px;
   }
 }
 
+@media (max-width: 480px) {
+  .instant-notifications-container {
+    top: 65px;
+    right: 8px;
+    left: 8px;
+  }
+
+  .notification-header {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .notification-icon {
+    font-size: 1rem;
+  }
+
+  .notification-title {
+    font-size: 0.85rem;
+  }
+
+  .notification-close {
+    font-size: 1.3rem;
+  }
+
+  .notification-body {
+    padding: 12px;
+  }
+
+  .student-info {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+
+  .subject-badge,
+  .grade-badge {
+    padding: 3px 10px;
+    font-size: 0.75rem;
+  }
+
+  .request-details {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .request-description {
+    font-size: 0.8rem;
+  }
+
+  .notification-actions {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .notification-actions button {
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+
+  .unavailable-main {
+    font-size: 0.9rem;
+  }
+
+  .unavailable-sub {
+    font-size: 0.8rem;
+  }
+}
 

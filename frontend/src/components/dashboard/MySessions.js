@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getSessions, updateSessionStatus, completeSession, endSession } from '../../services/api';
-import { HiInbox, HiCalendar, HiBookOpen, HiCheck, HiX, HiFlag } from 'react-icons/hi';
+import { HiInbox, HiCalendar, HiBookOpen, HiCheck, HiX, HiFlag, HiCreditCard } from 'react-icons/hi';
+import PaymentModal from './PaymentModal';
 import './MySessions.css';
 
 function MySessions() {
   const { user } = useAuth();
-  const { showConfirm } = useToast();
+  const { showConfirm, showSuccess } = useToast();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(user?.role === 'TUTOR' ? 'pending' : 'upcoming');
   const [actionLoading, setActionLoading] = useState(null);
+  const [paymentSession, setPaymentSession] = useState(null);
   const basePath = user?.role === 'TUTOR' ? '/tutor' : '/student';
 
   useEffect(() => {
@@ -115,6 +117,18 @@ function MySessions() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handlePayNow = (e, session) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPaymentSession(session);
+  };
+
+  const handlePaymentSuccess = (message) => {
+    setPaymentSession(null);
+    showSuccess(message);
+    loadSessions();
   };
 
   const formatDate = (dateStr) => {
@@ -225,6 +239,18 @@ function MySessions() {
                   </div>
                 )}
                 
+                {/* Student Pay Now button for confirmed sessions */}
+                {user?.role === 'STUDENT' && session.status === 'confirmed' && (
+                  <div className="session-actions-inline">
+                    <button
+                      className="action-button pay-btn"
+                      onClick={(e) => handlePayNow(e, session)}
+                    >
+                      <HiCreditCard /> Pay Now
+                    </button>
+                  </div>
+                )}
+                
                 {session.can_join && session.meeting_link && (
                   <div className="session-actions-inline">
                     <button
@@ -281,6 +307,15 @@ function MySessions() {
             </Link>
           )}
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {paymentSession && (
+        <PaymentModal
+          session={paymentSession}
+          onClose={() => setPaymentSession(null)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );

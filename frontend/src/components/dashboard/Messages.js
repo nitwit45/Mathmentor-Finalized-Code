@@ -65,8 +65,14 @@ function Messages() {
               className={`conversation-item ${conv.unread_count > 0 ? 'unread' : ''}`}
             >
               <div className="conversation-avatar">
-                {conv.other_participant?.first_name?.[0]}
-                {conv.other_participant?.last_name?.[0]}
+                {conv.other_participant?.profile_image_url ? (
+                  <img src={conv.other_participant.profile_image_url} alt={conv.other_participant.full_name} />
+                ) : (
+                  <span className="avatar-initials">
+                    {conv.other_participant?.first_name?.[0]}
+                    {conv.other_participant?.last_name?.[0]}
+                  </span>
+                )}
               </div>
               <div className="conversation-content">
                 <div className="conversation-header">

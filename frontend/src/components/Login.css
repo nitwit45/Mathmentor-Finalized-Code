@@ -178,3 +178,64 @@
 .link-button:hover {
   text-decoration: underline;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: var(--spacing-sm);
+    align-items: flex-start;
+    padding-top: var(--spacing-xl);
+  }
+
+  .auth-card {
+    padding: var(--spacing-lg);
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+  }
+
+  .auth-card h1 {
+    font-size: 24px;
+  }
+
+  .auth-subtitle {
+    font-size: 13px;
+  }
+
+  .form-group input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .auth-button {
+    padding: var(--spacing-md);
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: var(--spacing-xs);
+    padding-top: var(--spacing-md);
+  }
+
+  .auth-card {
+    padding: var(--spacing-md);
+  }
+
+  .auth-card h1 {
+    font-size: 22px;
+  }
+
+  .back-button {
+    font-size: 13px;
+  }
+
+  .error-message {
+    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .auth-link {
+    font-size: 13px;
+  }
+}
