@@ -175,8 +175,8 @@ CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 
 # CSRF settings for CORS requests
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the cookie
-CSRF_COOKIE_SAMESITE = 'None'  # Required for cross-origin requests
-CSRF_COOKIE_SECURE = True  # Required when SameSite=None
+CSRF_COOKIE_SAMESITE = 'Lax'  # Use Lax for HTTP connections
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)  # Allow HTTP for development
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_TRUSTED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',

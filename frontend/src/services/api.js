@@ -13,10 +13,18 @@ export async function initializeCsrf() {
  */
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
+  // #region agent log
+  fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:14',message:'apiRequest called',data:{endpoint,method:options.method||'GET',apiBase:API_BASE_URL},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+
   // Get CSRF token from cookie for POST/PUT/DELETE requests
   const token = getCsrfTokenFromCookie();
-  
+
+  // #region agent log
+  fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:21',message:'CSRF token check',data:{hasToken:!!token,method:options.method||'GET'},sessionId:'debug-session',runId:'initial',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
   const config = {
     ...options,
     credentials: 'include',
@@ -28,15 +36,34 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   try {
+    // #region agent log
+    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:28',message:'making fetch request',data:{url},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
     const response = await fetch(url, config);
+
+    // #region agent log
+    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:31',message:'fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
     const data = await response.json();
-    
+
+    // #region agent log
+    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:35',message:'response data parsed',data:{hasData:!!data,success:data.success},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
     if (!response.ok) {
+      // #region agent log
+      fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:39',message:'response not ok, throwing error',data:{status:response.status,message:data.message},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       throw new Error(data.message || 'An error occurred');
     }
-    
+
     return data;
   } catch (error) {
+    // #region agent log
+    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:43',message:'apiRequest error',data:{error:error.message},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     throw error;
   }
 }
