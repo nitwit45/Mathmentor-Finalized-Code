@@ -27,8 +27,21 @@ function VideoRoom({
 }) {
   const containerRef = useRef(null);
   const apiRef = useRef(null);
+  const initializingRef = useRef(false);
+  const loadingTimeoutRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const onParticipantJoinedRef = useRef(onParticipantJoined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Keep callback refs up to date
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    onParticipantJoinedRef.current = onParticipantJoined;
+  }, [onParticipantJoined]);
 
   // Load JaaS external API script
   const loadJitsiScript = useCallback(() => {
@@ -50,19 +63,38 @@ function VideoRoom({
 
   // Initialize the Jitsi iframe
   const initializeJitsi = useCallback(async () => {
+    // Guard against double initialization (React StrictMode)
+    if (initializingRef.current) {
+      console.log('[VideoRoom] Already initializing, skipping...');
+      return;
+    }
+
     if (!containerRef.current || !jwt || !roomName) {
       return;
     }
+
+    initializingRef.current = true;
 
     try {
       setIsLoading(true);
       setError(null);
 
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+
       await loadJitsiScript();
 
       // Clean up any existing instance
       if (apiRef.current) {
-        apiRef.current.dispose();
+        try {
+          apiRef.current.dispose();
+        } catch (err) {
+          console.warn('[VideoRoom] Error disposing previous instance:', err);
+        }
+        apiRef.current = null;
       }
 
       const options = {
@@ -120,61 +152,128 @@ function VideoRoom({
         },
       };
 
-      apiRef.current = new window.JitsiMeetExternalAPI(domain, options);
-
-      // Set up event listeners
-      apiRef.current.addListener('videoConferenceJoined', () => {
-        console.log('[VideoRoom] Conference joined');
-        setIsLoading(false);
+      // Log the configuration for debugging
+      console.log('[VideoRoom] Initializing with config:', {
+        domain,
+        roomName,
+        jwtLength: jwt?.length,
+        jwtPreview: jwt?.substring(0, 50) + '...',
+        appId,
       });
 
-      apiRef.current.addListener('videoConferenceLeft', () => {
-        console.log('[VideoRoom] Conference left');
-        if (onClose) {
-          onClose();
+      apiRef.current = new window.JitsiMeetExternalAPI(domain, options);
+
+      // Helper to clear loading state
+      const clearLoadingState = () => {
+        setIsLoading(false);
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+      };
+
+      // Set up event listeners
+      // Primary event - fires when local user joins conference
+      apiRef.current.addListener('videoConferenceJoined', (data) => {
+        console.log('[VideoRoom] Conference joined:', data);
+        clearLoadingState();
+      });
+
+      // Fallback event - also check when participants join (including local user)
+      apiRef.current.addListener('participantJoined', (participant) => {
+        console.log('[VideoRoom] Participant joined:', participant);
+        
+        // Clear loading when any participant joins (meeting is active)
+        setIsLoading((currentLoading) => {
+          if (currentLoading) {
+            console.log('[VideoRoom] Clearing loading via participantJoined');
+            clearLoadingState();
+            return false;
+          }
+          return currentLoading;
+        });
+        
+        // Notify parent component
+        if (onParticipantJoinedRef.current) {
+          onParticipantJoinedRef.current(participant);
         }
       });
 
-      apiRef.current.addListener('participantJoined', (participant) => {
-        console.log('[VideoRoom] Participant joined:', participant);
-        if (onParticipantJoined) {
-          onParticipantJoined(participant);
+      // Additional fallback - iframe ready event
+      apiRef.current.addListener('videoConferenceReady', () => {
+        console.log('[VideoRoom] Video conference ready');
+        clearLoadingState();
+      });
+
+      // Cleanup events
+      apiRef.current.addListener('videoConferenceLeft', () => {
+        console.log('[VideoRoom] Conference left');
+        if (onCloseRef.current) {
+          onCloseRef.current();
         }
       });
 
       apiRef.current.addListener('readyToClose', () => {
         console.log('[VideoRoom] Ready to close');
-        if (onClose) {
-          onClose();
+        if (onCloseRef.current) {
+          onCloseRef.current();
         }
       });
 
-      // Also listen for when the iframe is loaded (fallback for loading state)
+      // Error and authentication listeners
+      apiRef.current.addListener('passwordRequired', () => {
+        console.error('[VideoRoom] Password required - JWT may be invalid');
+        setError('Authentication failed. Please try again.');
+        clearLoadingState();
+      });
+
+      apiRef.current.addListener('errorOccurred', (errorEvent) => {
+        console.error('[VideoRoom] Error occurred:', errorEvent);
+        setError(errorEvent?.message || 'An error occurred in the video session');
+        clearLoadingState();
+      });
+
+      apiRef.current.addListener('connectionFailed', (errorEvent) => {
+        console.error('[VideoRoom] Connection failed:', errorEvent);
+        setError('Connection failed. Please check your internet and try again.');
+        clearLoadingState();
+      });
+
+      apiRef.current.addListener('conferenceError', (errorEvent) => {
+        console.error('[VideoRoom] Conference error:', errorEvent);
+        setError('Unable to join conference. Please try again.');
+        clearLoadingState();
+      });
+
+      // Debug listeners
+      apiRef.current.addListener('suspendDetected', () => {
+        console.log('[VideoRoom] Suspend detected');
+      });
+
       apiRef.current.addListener('browserSupport', () => {
         console.log('[VideoRoom] Browser support check passed');
       });
 
-      // Handle errors
-      apiRef.current.addListener('errorOccurred', (error) => {
-        console.error('[VideoRoom] Error occurred:', error);
-        setError(error?.message || 'An error occurred in the video session');
-        setIsLoading(false);
-      });
-
-      // Timeout fallback - if still loading after 15 seconds, something's wrong
-      setTimeout(() => {
-        if (isLoading && apiRef.current) {
-          console.log('[VideoRoom] Timeout - hiding loading overlay');
-          setIsLoading(false);
-        }
+      // Timeout fallback - if still loading after 15 seconds, force clear
+      // Use functional state update to avoid stale closure
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.log('[VideoRoom] Timeout reached, checking loading state...');
+        setIsLoading((currentLoading) => {
+          if (currentLoading && apiRef.current) {
+            console.log('[VideoRoom] Timeout - forcing loading state to false');
+            return false;
+          }
+          return currentLoading;
+        });
       }, 15000);
 
     } catch (err) {
-      console.error('Failed to initialize video room:', err);
+      console.error('[VideoRoom] Failed to initialize video room:', err);
       setError(err.message || 'Failed to start video session');
       setIsLoading(false);
+      initializingRef.current = false;
     }
-  }, [jwt, roomName, domain, userInfo, sessionInfo, onClose, onParticipantJoined, loadJitsiScript]);
+  }, [jwt, roomName, domain, sessionInfo?.topic, loadJitsiScript]);
 
   // Initialize on mount
   useEffect(() => {
@@ -182,10 +281,26 @@ function VideoRoom({
 
     // Cleanup on unmount
     return () => {
+      console.log('[VideoRoom] Cleaning up...');
+      
+      // Clear loading timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+
+      // Dispose Jitsi API instance
       if (apiRef.current) {
-        apiRef.current.dispose();
+        try {
+          apiRef.current.dispose();
+        } catch (err) {
+          console.warn('[VideoRoom] Error during cleanup:', err);
+        }
         apiRef.current = null;
       }
+
+      // Reset initialization flag
+      initializingRef.current = false;
     };
   }, [initializeJitsi]);
 
