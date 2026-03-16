@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getSessions, updateSessionStatus, completeSession, endSession } from '../../services/api';
@@ -10,6 +10,7 @@ import './MySessions.css';
 function MySessions() {
   const { user } = useAuth();
   const { showConfirm, showSuccess } = useToast();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(user?.role === 'TUTOR' ? 'pending' : 'upcoming');
@@ -251,13 +252,13 @@ function MySessions() {
                   </div>
                 )}
                 
-                {session.can_join && session.meeting_link && (
+                {session.can_join && (
                   <div className="session-actions-inline">
                     <button
                       className="action-button join-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(session.meeting_link, '_blank', 'noopener,noreferrer');
+                        navigate(`${basePath}/sessions/${session.id}`);
                       }}
                     >
                       Join Now

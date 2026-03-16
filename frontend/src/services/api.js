@@ -14,16 +14,8 @@ export async function initializeCsrf() {
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // #region agent log
-  fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:14',message:'apiRequest called',data:{endpoint,method:options.method||'GET',apiBase:API_BASE_URL},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-
   // Get CSRF token from cookie for POST/PUT/DELETE requests
   const token = getCsrfTokenFromCookie();
-
-  // #region agent log
-  fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:21',message:'CSRF token check',data:{hasToken:!!token,method:options.method||'GET'},sessionId:'debug-session',runId:'initial',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   const config = {
     ...options,
@@ -36,34 +28,15 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   try {
-    // #region agent log
-    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:28',message:'making fetch request',data:{url},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-
     const response = await fetch(url, config);
-
-    // #region agent log
-    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:31',message:'fetch response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-
     const data = await response.json();
 
-    // #region agent log
-    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:35',message:'response data parsed',data:{hasData:!!data,success:data.success},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-
     if (!response.ok) {
-      // #region agent log
-      fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:39',message:'response not ok, throwing error',data:{status:response.status,message:data.message},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       throw new Error(data.message || 'An error occurred');
     }
 
     return data;
   } catch (error) {
-    // #region agent log
-    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:43',message:'apiRequest error',data:{error:error.message},sessionId:'debug-session',runId:'initial',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     throw error;
   }
 }
@@ -251,6 +224,10 @@ export async function createCheckoutSession(sessionId) {
   });
 }
 
+export async function getCalendarSessions(month, year) {
+  return apiRequest(`/api/sessions/calendar/?month=${month}&year=${year}`);
+}
+
 // ==================== Payment Methods ====================
 
 export async function getStripeConfig() {
@@ -294,6 +271,23 @@ export async function payWithSavedCard(sessionId, paymentMethodId) {
     method: 'POST',
     body: JSON.stringify({ payment_method_id: paymentMethodId }),
   });
+}
+
+// ==================== Payment History ====================
+
+export async function getPaymentHistory(params = {}) {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      queryParams.append(key, value);
+    }
+  });
+  const qs = queryParams.toString();
+  return apiRequest(`/api/payments/${qs ? `?${qs}` : ''}`);
+}
+
+export async function getPaymentDetail(paymentId) {
+  return apiRequest(`/api/payments/${paymentId}/`);
 }
 
 // ==================== Messaging Endpoints ====================
@@ -360,6 +354,64 @@ export async function declineInstantRequest(requestId) {
   return apiRequest(`/api/instant_requests/${requestId}/decline/`, {
     method: 'POST',
   });
+}
+
+// ==================== Instant (Uber-style) Config ====================
+
+export async function getInstantConfig() {
+  return apiRequest('/api/instant/config/');
+}
+
+export async function getAdminInstantConfig() {
+  return apiRequest('/api/admin/instant-config/');
+}
+
+export async function updateAdminInstantConfig(data) {
+  return apiRequest('/api/admin/instant-config/', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+// ==================== Admin Endpoints ====================
+
+export async function getAdminDashboard() {
+  return apiRequest('/api/admin/dashboard/');
+}
+
+export async function getAdminUsers(params = {}) {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      queryParams.append(key, value);
+    }
+  });
+  const queryString = queryParams.toString();
+  const suffix = queryString ? `?${queryString}` : '';
+  return apiRequest(`/api/admin/users/${suffix}`);
+}
+
+export async function getAdminUser(userId) {
+  return apiRequest(`/api/admin/users/${userId}/`);
+}
+
+export async function updateAdminUser(userId, data) {
+  return apiRequest(`/api/admin/users/${userId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getAdminSessions(params = {}) {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      queryParams.append(key, value);
+    }
+  });
+  const queryString = queryParams.toString();
+  const suffix = queryString ? `?${queryString}` : '';
+  return apiRequest(`/api/admin/sessions/${suffix}`);
 }
 
 // ==================== WebSocket Helpers ====================

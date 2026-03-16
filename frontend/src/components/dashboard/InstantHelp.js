@@ -1,27 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
-import { getChoices, createInstantWebSocket } from '../../services/api';
-import { HiLightningBolt, HiSearch, HiSparkles, HiVideoCamera } from 'react-icons/hi';
+import { useNavigate, Link } from 'react-router-dom';
+import { getChoices, getInstantConfig, createInstantWebSocket } from '../../services/api';
+import { HiLightningBolt, HiSearch, HiSparkles, HiVideoCamera, HiCreditCard } from 'react-icons/hi';
 import './InstantHelp.css';
 
 function InstantHelp() {
+  const navigate = useNavigate();
   const [choices, setChoices] = useState({ subjects: [], grades: [] });
   const [formData, setFormData] = useState({
     subject: '',
     grade: '',
     topic: '',
   });
-  const [status, setStatus] = useState('idle'); // idle, searching, matched, error
+  const [status, setStatus] = useState('idle'); // idle, searching, matched, payment_failed
   const [matchedSession, setMatchedSession] = useState(null);
   const [error, setError] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+  const [instantRate, setInstantRate] = useState(null);
   const wsRef = useRef(null);
   const requestIdRef = useRef(null);
 
   useEffect(() => {
-    getChoices().then(res => {
-      if (res.success) {
-        setChoices(res.data);
+    async function loadData() {
+      try {
+        const [choicesRes, configRes] = await Promise.all([
+          getChoices(),
+          getInstantConfig().catch(() => null),
+        ]);
+
+        if (choicesRes?.success) {
+          setChoices(choicesRes.data);
+        }
+
+        if (configRes?.success) {
+          setInstantRate(configRes.data.hourly_rate);
+        }
+      } catch (err) {
+        // Ignore and let UI work without pricing info
       }
-    });
+    }
+
+    loadData();
 
     return () => {
       if (wsRef.current) {
@@ -47,6 +66,10 @@ function InstantHelp() {
           } else if (data.type === 'match_found') {
             setStatus('matched');
             setMatchedSession(data.session);
+          } else if (data.type === 'payment_failed') {
+            setStatus('payment_failed');
+            setPaymentError(data.message || 'Payment failed. Please update your payment method and try again.');
+            if (wsRef.current) wsRef.current.close();
           } else if (data.type === 'request_cancelled') {
             setStatus('idle');
           }
@@ -120,9 +143,15 @@ function InstantHelp() {
   };
 
   const handleJoinSession = () => {
-    if (matchedSession?.meeting_link) {
-      window.open(matchedSession.meeting_link, '_blank');
+    if (matchedSession?.id) {
+      navigate(`/student/sessions/${matchedSession.id}`);
     }
+  };
+
+  const handleRetryAfterPaymentFailure = () => {
+    setStatus('idle');
+    setPaymentError('');
+    setError('');
   };
 
   return (
@@ -136,6 +165,14 @@ function InstantHelp() {
         <div className="instant-form-card">
           <form onSubmit={handleSubmit}>
             {error && <div className="error-message">{error}</div>}
+
+            {instantRate && (
+              <div className="instant-pricing-note">
+                <p>
+                  Instant sessions are charged at <strong>£{Number(instantRate).toFixed(2)}</strong> per hour.
+                </p>
+              </div>
+            )}
 
             <div className="form-group">
               <label>What subject do you need help with? *</label>
@@ -223,6 +260,24 @@ function InstantHelp() {
           <button onClick={handleJoinSession} className="action-button join-btn large">
             <HiVideoCamera /> Join Video Session Now
           </button>
+        </div>
+      )}
+
+      {status === 'payment_failed' && (
+        <div className="payment-failed-state">
+          <div className="payment-failed-icon">
+            <HiCreditCard />
+          </div>
+          <h2>Payment Failed</h2>
+          <p className="payment-failed-message">{paymentError}</p>
+          <div className="payment-failed-actions">
+            <Link to="/student/payment-methods" className="action-button">
+              <HiCreditCard /> Update Payment Method
+            </Link>
+            <button onClick={handleRetryAfterPaymentFailure} className="action-button secondary">
+              Try Again
+            </button>
+          </div>
         </div>
       )}
     </div>

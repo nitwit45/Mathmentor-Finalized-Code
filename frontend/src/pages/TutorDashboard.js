@@ -1,8 +1,10 @@
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyProfile } from '../services/api';
+import { useUnreadMessagesCount } from '../hooks/useUnreadMessagesCount';
 import { HiHome, HiLightningBolt, HiCalendar, HiChat, HiCurrencyDollar, HiCog, HiLogout } from 'react-icons/hi';
+import DefaultAvatar from '../components/common/DefaultAvatar';
 import './Dashboard.css';
 
 // Dashboard pages
@@ -12,9 +14,10 @@ import MySessions from '../components/dashboard/MySessions';
 import SessionDetail from '../components/dashboard/SessionDetail';
 import Messages from '../components/dashboard/Messages';
 import Conversation from '../components/dashboard/Conversation';
-import Earnings from '../components/dashboard/Earnings';
 import Settings from '../components/dashboard/Settings';
 import InstantNotification from '../components/common/InstantNotification';
+import SessionCalendar from '../components/dashboard/SessionCalendar';
+import PaymentHistory from '../components/dashboard/PaymentHistory';
 
 function TutorDashboard() {
   const { user, logout } = useAuth();
@@ -22,6 +25,8 @@ function TutorDashboard() {
   const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { unreadCount, refresh } = useUnreadMessagesCount();
+  const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
     async function loadProfile() {
@@ -42,6 +47,15 @@ function TutorDashboard() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Refresh unread count when leaving Messages page
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = location.pathname;
+    if (prev.startsWith('/tutor/messages') && !location.pathname.startsWith('/tutor/messages')) {
+      refresh();
+    }
+  }, [location.pathname, refresh]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -102,9 +116,11 @@ function TutorDashboard() {
                 className="sidebar-profile-picture"
               />
             ) : (
-              <div className="sidebar-profile-placeholder">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
+              <DefaultAvatar
+                firstName={user?.first_name}
+                lastName={user?.last_name}
+                size="small"
+              />
             )}
             <p className="user-greeting">Hi, {user?.first_name || 'Tutor'}!</p>
           </div>
@@ -123,9 +139,20 @@ function TutorDashboard() {
             <span className="nav-icon"><HiCalendar /></span>
             <span>My Sessions</span>
           </NavLink>
+          <NavLink to="/tutor/calendar" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon"><HiCalendar /></span>
+            <span>Calendar</span>
+          </NavLink>
           <NavLink to="/tutor/messages" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon"><HiChat /></span>
-            <span>Messages</span>
+            <span className="nav-link-with-badge">
+              <span>Messages</span>
+              {unreadCount > 0 && (
+                <span className="nav-unread-badge" aria-label={`${unreadCount} unread messages`}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
           </NavLink>
           <NavLink to="/tutor/earnings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon"><HiCurrencyDollar /></span>
@@ -154,7 +181,8 @@ function TutorDashboard() {
           <Route path="sessions/:sessionId" element={<SessionDetail />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:conversationId" element={<Conversation />} />
-          <Route path="earnings" element={<Earnings />} />
+          <Route path="earnings" element={<PaymentHistory />} />
+          <Route path="calendar" element={<SessionCalendar />} />
           <Route path="settings" element={<Settings />} />
         </Routes>
       </main>

@@ -182,13 +182,6 @@ class Session(models.Model):
     def __str__(self):
         return f"Session: {self.student.email} with {self.tutor.email} on {self.scheduled_time}"
 
-    def generate_meeting_link(self):
-        """Generate a Jitsi Meet link for this session."""
-        room_name = f"mathmentor-{self.id}-{int(self.scheduled_time.timestamp())}"
-        self.meeting_link = f"https://meet.jit.si/{room_name}"
-        self.save()
-        return self.meeting_link
-
     def can_join(self):
         """Check if the session can be joined (5 minutes before start)."""
         allowed_statuses = [
@@ -373,3 +366,74 @@ class TutorAvailability(models.Model):
 
     def __str__(self):
         return f"{self.tutor.email} - {self.get_day_of_week_display()}: {self.start_time} - {self.end_time}"
+
+
+class Payment(models.Model):
+    """Records a successful payment for a tutoring session."""
+
+    class Status(models.TextChoices):
+        SUCCEEDED = 'succeeded', 'Succeeded'
+        REFUNDED = 'refunded', 'Refunded'
+        FAILED = 'failed', 'Failed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.OneToOneField(
+        Session,
+        on_delete=models.CASCADE,
+        related_name='payment'
+    )
+    payer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payments_made'
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payments_received'
+    )
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SUCCEEDED
+    )
+    invoice_number = models.CharField(max_length=50, unique=True)
+    paid_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-paid_at']
+
+    def __str__(self):
+        return f"Payment {self.invoice_number}: £{self.amount} from {self.payer.email}"
+
+    @classmethod
+    def generate_invoice_number(cls):
+        """Generate a sequential invoice number in MM-YYYY-NNNNN format."""
+        from django.utils import timezone as tz
+        year = tz.now().year
+        # Count existing invoices for this year to derive next sequence
+        prefix = f'MM-{year}-'
+        count = cls.objects.filter(invoice_number__startswith=prefix).count()
+        return f'{prefix}{str(count + 1).zfill(5)}'
+
+
+class InstantConfig(models.Model):
+    """
+    Global configuration for instant (Uber-style) tutoring.
+
+    There should typically be only one row in this table.
+    """
+
+    hourly_rate = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=25.00,
+        help_text="Hourly rate in GBP for instant tutoring sessions.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"InstantConfig: £{self.hourly_rate}/hr"

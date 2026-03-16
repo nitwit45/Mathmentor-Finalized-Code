@@ -18,6 +18,7 @@ import ProfileCompletion from './pages/ProfileCompletion';
 // Dashboard pages
 import StudentDashboard from './pages/StudentDashboard';
 import TutorDashboard from './pages/TutorDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Public pages
 import Home from './pages/Home';
@@ -30,7 +31,7 @@ import './App.css';
 
 // Protected Route wrapper
 function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, loading, user, isProfileComplete } = useAuth();
+  const { isAuthenticated, loading, user, isProfileComplete, isAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -41,15 +42,33 @@ function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if profile completion is required
-  if (!isProfileComplete && location.pathname !== '/complete-profile') {
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Check if profile completion is required (students/tutors only)
+  if (
+    !isAdminRoute &&
+    !isProfileComplete &&
+    location.pathname !== '/complete-profile'
+  ) {
     return <Navigate to="/complete-profile" replace />;
   }
 
   // Check role requirement
-  if (requiredRole && user?.role !== requiredRole) {
-    const redirectPath = user?.role === 'TUTOR' ? '/tutor' : '/student';
-    return <Navigate to={redirectPath} replace />;
+  if (requiredRole) {
+    if (requiredRole === 'ADMIN') {
+      if (!isAdmin) {
+        const redirectPath =
+          user?.role === 'TUTOR'
+            ? '/tutor'
+            : user?.role === 'STUDENT'
+            ? '/student'
+            : '/';
+        return <Navigate to={redirectPath} replace />;
+      }
+    } else if (user?.role !== requiredRole) {
+      const redirectPath = user?.role === 'TUTOR' ? '/tutor' : '/student';
+      return <Navigate to={redirectPath} replace />;
+    }
   }
 
   return children;
@@ -57,17 +76,22 @@ function ProtectedRoute({ children, requiredRole }) {
 
 // Public Route wrapper (redirect if already authenticated)
 function PublicRoute({ children }) {
-  const { isAuthenticated, loading, user, isProfileComplete } = useAuth();
+  const { isAuthenticated, loading, user, isProfileComplete, isAdmin } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (isAuthenticated) {
-    if (!isProfileComplete) {
+    if (!isProfileComplete && !isAdmin) {
       return <Navigate to="/complete-profile" replace />;
     }
-    const redirectPath = user?.role === 'TUTOR' ? '/tutor' : '/student';
+    const redirectPath =
+      user?.role === 'ADMIN'
+        ? '/admin'
+        : user?.role === 'TUTOR'
+        ? '/tutor'
+        : '/student';
     return <Navigate to={redirectPath} replace />;
   }
 
@@ -201,6 +225,13 @@ function AppRoutes() {
       <Route path="/complete-profile" element={
         <ProtectedRoute>
           <ProfileCompletion />
+        </ProtectedRoute>
+      } />
+
+      {/* Admin dashboard routes */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute requiredRole="ADMIN">
+          <AdminDashboard />
         </ProtectedRoute>
       } />
 

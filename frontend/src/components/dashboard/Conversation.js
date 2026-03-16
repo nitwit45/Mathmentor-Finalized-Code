@@ -3,11 +3,27 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getConversation, sendMessage, createChatWebSocket } from '../../services/api';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './Conversation.css';
 
 // Message status icon component
 function MessageStatusIcon({ status }) {
-  if (status === 'read') {
+  if (status === 'pending') {
+    return (
+      <svg className="message-status-icon pending" width="16" height="16" viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.5">
+          <animate attributeName="stroke-dasharray" values="0 44;44 0" dur="1s" repeatCount="indefinite" />
+        </circle>
+      </svg>
+    );
+  } else if (status === 'failed') {
+    return (
+      <svg className="message-status-icon failed" width="16" height="16" viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M5 5L11 11M11 5L5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  } else if (status === 'read') {
     return (
       <svg className="message-status-icon read" width="16" height="11" viewBox="0 0 16 11">
         <path d="M11.071.653a.75.75 0 0 1 1.06 0l3.866 3.866a.75.75 0 1 1-1.06 1.06l-3.336-3.336-3.336 3.337a.75.75 0 1 1-1.06-1.061L11.071.653z" />
@@ -47,6 +63,11 @@ function Conversation() {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const basePath = user?.role === 'TUTOR' ? '/tutor' : '/student';
+  const pendingMessagesRef = useRef(new Map()); // Track pending messages by temp ID
+  const heartbeatIntervalRef = useRef(null);
+  const lastPongRef = useRef(Date.now());
+  const missedPongsRef = useRef(0);
+  const sentReadReceiptsRef = useRef(new Set()); // Track messages we've already sent read receipts for
 
   const connectWebSocket = useCallback(() => {
     if (!conversationId) return;
@@ -55,40 +76,106 @@ function Conversation() {
       const ws = createChatWebSocket(conversationId);
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        if (process.env.NODE_ENV === 'development') console.log('WebSocket connected');
         setWsConnected(true);
         reconnectAttempts.current = 0; // Reset reconnection attempts on successful connection
-        // Mark all unread messages as read when opening conversation
-        markAllAsRead();
+        lastPongRef.current = Date.now();
+        missedPongsRef.current = 0;
+        
+        // Start heartbeat mechanism
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+        }
+        
+        heartbeatIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            const now = Date.now();
+            const timeSinceLastPong = now - lastPongRef.current;
+            
+            // If we haven't received a pong in 45 seconds, consider connection dead
+            if (timeSinceLastPong > 45000) {
+              if (process.env.NODE_ENV === 'development') console.log('WebSocket appears dead (no pong received), forcing reconnect');
+              missedPongsRef.current++;
+              if (missedPongsRef.current >= 2) {
+                // Force close and reconnect
+                ws.close();
+                return;
+              }
+            }
+            
+            // Send ping
+            try {
+              ws.send(JSON.stringify({
+                type: 'ping',
+                timestamp: now
+              }));
+            } catch (error) {
+              console.error('Failed to send ping:', error);
+            }
+          }
+        }, 30000); // Send ping every 30 seconds
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
+        if (data.type === 'pong') {
+          // Heartbeat pong received
+          lastPongRef.current = Date.now();
+          missedPongsRef.current = 0;
+          return;
+        }
+
         if (data.type === 'message') {
           const message = data.message;
-          // Add message to state using functional update to ensure we have latest state
+
           setMessages(prev => {
-            // Check if message already exists to avoid duplicates
+            // Check if this is a confirmation for a pending message
+            let replacedPending = false;
+            const updated = prev.map(m => {
+              // If we find a pending message from this user, replace it with the confirmed one
+              if (m.status === 'pending' && m.sender_id === message.sender_id && 
+                  m.content === message.content && message.sender_id === user?.id) {
+                replacedPending = true;
+                pendingMessagesRef.current.delete(m.id);
+                return { ...message, id: message.id };
+              }
+              return m;
+            });
+
+            // If we replaced a pending message, return the updated array
+            if (replacedPending) {
+              return updated;
+            }
+
+            // Otherwise, check if message already exists to avoid duplicates
             const exists = prev.some(m => m.id === message.id);
             if (exists) {
               return prev;
             }
+            
             return [...prev, message];
           });
 
           // If message is from other user, send delivery acknowledgment
           if (message.sender_id !== user?.id && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'delivered_ack',
-              message_id: message.id,
-            }));
+            const msgId = String(message.id);
+            
+            // Only send if we haven't already sent read receipt for this message
+            if (!sentReadReceiptsRef.current.has(msgId)) {
+              sentReadReceiptsRef.current.add(msgId);
+              
+              ws.send(JSON.stringify({
+                type: 'delivered_ack',
+                message_id: message.id,
+              }));
 
-            // Also mark as read immediately since user is viewing the conversation
-            ws.send(JSON.stringify({
-              type: 'read',
-              message_ids: [message.id],
-            }));
+              // Also mark as read immediately since user is viewing the conversation
+              ws.send(JSON.stringify({
+                type: 'read',
+                message_ids: [message.id],
+              }));
+            }
           }
         } else if (data.type === 'status_update') {
           // Update message status in local state using functional update
@@ -114,19 +201,25 @@ function Conversation() {
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        if (process.env.NODE_ENV === 'development') console.error('WebSocket error:', error);
         setWsConnected(false);
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
+        if (process.env.NODE_ENV === 'development') console.log('WebSocket disconnected:', event.code, event.reason);
         setWsConnected(false);
+        
+        // Clear heartbeat interval
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
 
         // Attempt to reconnect if not a normal closure and we haven't exceeded max attempts
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000); // Exponential backoff, max 30s
-          console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          if (process.env.NODE_ENV === 'development') console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
@@ -138,7 +231,7 @@ function Conversation() {
 
       return ws;
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
+      if (process.env.NODE_ENV === 'development') console.error('WebSocket connection failed:', error);
       setWsConnected(false);
       return null;
     }
@@ -181,6 +274,9 @@ function Conversation() {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
     };
   }, [connectWebSocket]);
 
@@ -198,12 +294,34 @@ function Conversation() {
     }
   }, [messages, user?.id]);
 
-  // Mark messages as read when component mounts or messages change
+  // Mark messages as read when messages load and WebSocket is connected
   useEffect(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      markAllAsRead();
+    // Only mark as read if:
+    // 1. WebSocket is connected
+    // 2. Messages have been loaded (not initial loading state)
+    // 3. There are actually unread messages we haven't sent receipts for yet
+    if (wsConnected && !loading && messages.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+      const unreadIds = messages
+        .filter(msg => {
+          // Only include messages from other users that we haven't sent read receipts for
+          const msgId = String(msg.id);
+          return msg.sender_id !== user?.id && 
+                 !msg.is_read && 
+                 !sentReadReceiptsRef.current.has(msgId);
+        })
+        .map(msg => msg.id);
+      
+      if (unreadIds.length > 0) {
+        // Mark these as sent BEFORE sending to prevent race conditions
+        unreadIds.forEach(id => sentReadReceiptsRef.current.add(String(id)));
+        
+        wsRef.current.send(JSON.stringify({
+          type: 'read',
+          message_ids: unreadIds,
+        }));
+      }
     }
-  }, [markAllAsRead]);
+  }, [wsConnected, loading, messages, user?.id]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -213,6 +331,40 @@ function Conversation() {
     setNewMessage('');
     setSending(true);
 
+    // Create optimistic message with temporary ID
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimisticMessage = {
+      id: tempId,
+      content: content,
+      sender_id: user?.id,
+      sender: {
+        id: user?.id,
+        first_name: user?.first_name,
+        last_name: user?.last_name,
+        full_name: `${user?.first_name} ${user?.last_name}`,
+      },
+      created_at: new Date().toISOString(),
+      is_read: false,
+      delivered_at: null,
+      read_at: null,
+      status: 'pending',
+    };
+
+    // Add optimistic message immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+    pendingMessagesRef.current.set(tempId, { content, timestamp: Date.now() });
+
+    // Timeout to mark as failed after 10 seconds
+    const timeoutId = setTimeout(() => {
+      if (pendingMessagesRef.current.has(tempId)) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...msg, status: 'failed' } : msg
+        ));
+        pendingMessagesRef.current.delete(tempId);
+        showToast('Message failed to send. Please try again.', 'error');
+      }
+    }, 10000);
+
     try {
       // Try WebSocket first if connected
       if (wsConnected && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -220,18 +372,31 @@ function Conversation() {
           type: 'message',
           content,
         }));
+        // WebSocket will send back confirmation message that will replace the pending one
       } else {
         // Fallback to REST API
         const response = await sendMessage(conversationId, content);
+        clearTimeout(timeoutId);
+        
         if (response.success) {
-          setMessages(prev => [...prev, response.data]);
+          // Replace pending message with confirmed one
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId ? { ...response.data, status: 'sent' } : msg
+          ));
+          pendingMessagesRef.current.delete(tempId);
         } else {
           throw new Error(response.message || 'Failed to send message');
         }
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error sending message:', error);
-      setNewMessage(content); // Restore message on error
+      
+      // Mark message as failed
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? { ...msg, status: 'failed' } : msg
+      ));
+      pendingMessagesRef.current.delete(tempId);
 
       // Show user-friendly error message
       let errorMessage = 'Failed to send message. Please try again.';
@@ -300,9 +465,11 @@ function Conversation() {
             {otherUser?.profile_image_url ? (
               <img src={otherUser.profile_image_url} alt={otherUser.full_name} />
             ) : (
-              <span className="avatar-initials">
-                {otherUser?.first_name?.[0]}{otherUser?.last_name?.[0]}
-              </span>
+              <DefaultAvatar
+                firstName={otherUser?.first_name}
+                lastName={otherUser?.last_name}
+                size="small"
+              />
             )}
           </div>
           <div>

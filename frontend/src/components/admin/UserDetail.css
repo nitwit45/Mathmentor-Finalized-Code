@@ -1,0 +1,136 @@
+.admin-user-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.detail-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.admin-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.primary-button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: none;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-student {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.role-tutor {
+  background: rgba(16, 185, 129, 0.08);
+  color: #047857;
+}
+
+.role-parent {
+  background: rgba(249, 115, 22, 0.08);
+  color: #ea580c;
+}
+
+.role-admin {
+  background: rgba(147, 51, 234, 0.08);
+  color: #7e22ce;
+}
+
+.role-unknown {
+  background: rgba(148, 163, 184, 0.16);
+  color: #475569;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.status-inactive {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+.dashboard-loading,
+.dashboard-error {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.dashboard-error p {
+  color: #b91c1c;
+}
+

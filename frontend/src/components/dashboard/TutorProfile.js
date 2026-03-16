@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTutorProfile, startConversation } from '../../services/api';
 import { HiStar, HiCalendar, HiChat, HiLightningBolt, HiCheckCircle, HiBookOpen } from 'react-icons/hi';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './TutorProfile.css';
 
 function TutorProfile() {
@@ -73,7 +74,11 @@ function TutorProfile() {
               {tutor.profile_image_url ? (
                 <img src={tutor.profile_image_url} alt={tutor.user.full_name} />
               ) : (
-                <span>{tutor.user.first_name?.[0]}{tutor.user.last_name?.[0]}</span>
+                <DefaultAvatar
+                  firstName={tutor.user.first_name}
+                  lastName={tutor.user.last_name}
+                  size="xl"
+                />
               )}
             </div>
             <div className="profile-info">

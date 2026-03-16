@@ -73,7 +73,10 @@ ASGI_APPLICATION = 'mathmentor.asgi.application'
 # Channels configuration
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [config('REDIS_URL', default='redis://localhost:6379')],
+        },
     },
 }
 
@@ -214,5 +217,6 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 # JaaS (Jitsi as a Service) Configuration
 JAAS_APP_ID = config('JAAS_APP_ID', default='vpaas-magic-cookie-7b66c51250a5450c8228c052d21ee9a8')
 JAAS_API_KEY_ID = config('JAAS_API_KEY_ID', default='vpaas-magic-cookie-7b66c51250a5450c8228c052d21ee9a8/c85043')
-JAAS_PRIVATE_KEY_PATH = config('JAAS_PRIVATE_KEY_PATH', default=str(BASE_DIR / 'jitsi-keys' / 'Key 12_31_2025, 4_30_21 PM.pk'))
+# Path to JaaS private key (PEM format from 8x8/ Jitsi dashboard)
+JAAS_PRIVATE_KEY_PATH = config('JAAS_PRIVATE_KEY_PATH', default=str(BASE_DIR / 'jitsi-keys' / 'private_key.pem'))
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getConversations } from '../../services/api';
 import { HiChat } from 'react-icons/hi';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './Messages.css';
 
 function Messages() {
@@ -68,10 +69,11 @@ function Messages() {
                 {conv.other_participant?.profile_image_url ? (
                   <img src={conv.other_participant.profile_image_url} alt={conv.other_participant.full_name} />
                 ) : (
-                  <span className="avatar-initials">
-                    {conv.other_participant?.first_name?.[0]}
-                    {conv.other_participant?.last_name?.[0]}
-                  </span>
+                  <DefaultAvatar
+                    firstName={conv.other_participant?.first_name}
+                    lastName={conv.other_participant?.last_name}
+                    size="small"
+                  />
                 )}
               </div>
               <div className="conversation-content">

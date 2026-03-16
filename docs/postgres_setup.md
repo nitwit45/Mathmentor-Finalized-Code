@@ -30,7 +30,7 @@ GRANT ALL PRIVILEGES ON DATABASE mathmentor TO mathmentor_user;
 -- Connect to the mathmentor database
 \c mathmentor
 
--- Grant schema privileges (important for Django migrations, run one at a time) 
+-- Grant schema privileges (important for Django migrations, run one at a time)
 GRANT ALL ON SCHEMA public TO mathmentor_user;
 ALTER SCHEMA public OWNER TO mathmentor_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO mathmentor_user;

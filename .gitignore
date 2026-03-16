@@ -1,0 +1,25 @@
+# Sensitive / generated
+.env
+.env.backup
+.env.*.local
+certs/
+db_backup*.json
+NOTE.TXT
+
+# Backend
+backend/__pycache__/
+backend/*.py[cod]
+backend/venv/
+backend/db.sqlite3
+backend/media/
+backend/staticfiles/
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,229 @@
+.admin-home {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.admin-stat-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.admin-stat-card h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.admin-stat-card .stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-stat-card .stat-sub {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-list-item:last-child {
+  border-bottom: none;
+}
+
+.admin-list-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-list-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-list-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.admin-list-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-student {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.role-tutor {
+  background: rgba(16, 185, 129, 0.08);
+  color: #047857;
+}
+
+.role-parent {
+  background: rgba(249, 115, 22, 0.08);
+  color: #ea580c;
+}
+
+.role-admin {
+  background: rgba(147, 51, 234, 0.08);
+  color: #7e22ce;
+}
+
+.role-unknown {
+  background: rgba(148, 163, 184, 0.16);
+  color: #475569;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.status-badge.completed {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+.status-badge.in_progress,
+.status-badge.scheduled,
+.status-badge.confirmed {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.dashboard-loading,
+.dashboard-error,
+.empty-state-small {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.dashboard-error p {
+  color: #b91c1c;
+}
+
+.instant-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.instant-config-form label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.instant-config-form input {
+  max-width: 180px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.instant-config-form button {
+  align-self: flex-start;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.instant-config-form button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.instant-error {
+  color: #f87171;
+  font-size: 0.8rem;
+}
+
+.instant-success {
+  color: #4ade80;
+  font-size: 0.8rem;
+}
+
+.instant-help-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+

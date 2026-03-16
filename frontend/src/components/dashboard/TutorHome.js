@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getSessions, getMyProfile } from '../../services/api';
 import { HiBookOpen, HiCurrencyPound, HiStar, HiCheckCircle, HiXCircle, HiLightningBolt, HiCalendar, HiChat } from 'react-icons/hi';
@@ -7,6 +7,7 @@ import './DashboardHome.css';
 
 function TutorHome() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [upcomingSessions, setUpcomingSessions] = useState([]);
   const [stats, setStats] = useState({
     totalSessions: 0,
@@ -150,15 +151,16 @@ function TutorHome() {
                     {session.status_display}
                   </span>
                   {session.can_join && (
-                    <a 
-                      href={session.meeting_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button 
                       className="action-button"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        navigate(`/tutor/sessions/${session.id}`);
+                      }}
                     >
                       Join Session
-                    </a>
+                    </button>
                   )}
                 </div>
               </Link>

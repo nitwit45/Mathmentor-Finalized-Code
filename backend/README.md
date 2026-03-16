@@ -9,64 +9,23 @@ Django REST Framework backend API for the Mathmentor tutoring platform.
 - RESTful API endpoints using Django REST Framework
 - Custom User model with role-based access
 - PostgreSQL database support
+- WebSockets (Channels) for real-time chat and notifications
 - CORS configuration for frontend integration
 
-## Prerequisites
+## Quick Setup
 
-- Python 3.8 or higher
-- PostgreSQL database (remote VPS)
-- pip (Python package manager)
-
-## Setup
-
-### 1. Create Virtual Environment
+See the [root setup guide](../README.md) and [docs/SETUP.md](../docs/SETUP.md) for full setup.
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 2. Install Dependencies
-
-```bash
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 3. Configure Environment Variables
-
-Copy `.env.example` to `.env` and update the values:
-
-```bash
-cp .env.example .env
-```
-
-Update the following in `.env`:
-- `SECRET_KEY` - Django secret key (generate a new one for production)
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` - PostgreSQL connection details
-- `CORS_ALLOWED_ORIGINS` - Frontend URL(s)
-- Email configuration (see Environment Variables section below)
-
-### 4. Run Database Migrations
-
-```bash
-python manage.py makemigrations
+cp .env.example .env   # Edit with your values
 python manage.py migrate
-```
-
-### 5. Create Superuser (Optional)
-
-```bash
-python manage.py createsuperuser
-```
-
-### 6. Start Development Server
-
-```bash
 python manage.py runserver
 ```
 
-The server will start on `http://localhost:8000` (or the port specified).
+**Note:** Redis is required for WebSockets. Start `redis-server` before running the app.
 
 ## API Endpoints
 

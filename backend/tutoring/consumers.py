@@ -42,6 +42,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get('type', 'message')
 
+        if message_type == 'ping':
+            # Respond to heartbeat ping
+            await self.send(text_data=json.dumps({
+                'type': 'pong',
+                'timestamp': data.get('timestamp')
+            }))
+            return
+
         if message_type == 'message':
             content = data.get('content', '')
             if content:
@@ -312,7 +320,7 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
                 'session': result['session'],
             }))
 
-            # Notify the student
+            # Notify the student — match found and payment succeeded
             await self.channel_layer.group_send(
                 f"user_{result['student_id']}",
                 {
@@ -321,6 +329,34 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
                     'tutor': result['tutor'],
                 }
             )
+
+        elif result.get('payment_failed'):
+            # Payment was declined — session and request already cancelled.
+            # Tell other tutors the request is gone (no point accepting a cancelled request)
+            await self.channel_layer.group_send(
+                f'instant_{result["subject"]}',
+                {
+                    'type': 'request_taken',
+                    'request_id': request_id,
+                }
+            )
+
+            # Tell the tutor their accept attempt could not complete
+            await self.send(text_data=json.dumps({
+                'type': 'accept_failed',
+                'request_id': request_id,
+                'message': "Student's payment failed. The request has been cancelled.",
+            }))
+
+            # Tell the student their payment failed so they can fix their card
+            await self.channel_layer.group_send(
+                f"user_{result['student_id']}",
+                {
+                    'type': 'payment_failed',
+                    'message': result.get('message', 'Payment failed. Please update your payment method and try again.'),
+                }
+            )
+
         else:
             await self.send(text_data=json.dumps({
                 'type': 'accept_failed',
@@ -407,6 +443,13 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
             'request_id': event['request_id'],
         }))
 
+    async def payment_failed(self, event):
+        """Notify student that the auto-charge for an instant session failed."""
+        await self.send(text_data=json.dumps({
+            'type': 'payment_failed',
+            'message': event['message'],
+        }))
+
     @database_sync_to_async
     def is_available_tutor(self):
         from .models import TutorProfile
@@ -453,10 +496,12 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def accept_instant_request(self, request_id):
-        from .models import InstantRequest, Session, TutorProfile
+        from .models import InstantRequest, Session, TutorProfile, InstantConfig
+        from .payments import charge_session_with_default_card
         from django.db import transaction
 
         try:
+            # Phase 1: atomically claim the request and create the session.
             with transaction.atomic():
                 request = InstantRequest.objects.select_for_update().get(
                     id=request_id,
@@ -466,10 +511,10 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
                 if request.is_expired():
                     return {'success': False, 'message': 'Request has expired'}
 
-                # Get tutor profile for hourly rate
                 tutor_profile = TutorProfile.objects.get(user=self.user)
+                config = InstantConfig.objects.first()
+                hourly_rate = config.hourly_rate if config else tutor_profile.hourly_rate
 
-                # Create session
                 session = Session.objects.create(
                     tutor=self.user,
                     student=request.student,
@@ -477,31 +522,54 @@ class InstantMatchConsumer(AsyncWebsocketConsumer):
                     duration=60,
                     topic=request.topic_description or f"{request.get_subject_display()} - {request.get_grade_display()}",
                     status=Session.Status.IN_PROGRESS,
-                    price=tutor_profile.hourly_rate,
+                    price=hourly_rate,
                     is_instant=True,
                 )
-                session.generate_meeting_link()
 
-                # Update instant request
                 request.status = InstantRequest.Status.ACCEPTED
                 request.matched_tutor = self.user
                 request.session = session
                 request.save()
 
+            # Keep references outside the atomic block for cleanup / return
+            student = request.student
+            subject = request.subject
+
+            # Phase 2: charge the student's saved default card.
+            # Done outside the transaction so a charge success is never rolled back
+            # and a charge failure can still update the already-committed rows.
+            charge_result = charge_session_with_default_card(session, student)
+
+            if charge_result['success']:
                 return {
                     'success': True,
-                    'student_id': request.student.id,
-                    'subject': request.subject,
+                    'student_id': student.id,
+                    'subject': subject,
                     'session': {
                         'id': str(session.id),
-                        'meeting_link': session.meeting_link,
                         'topic': session.topic,
                     },
                     'tutor': {
                         'id': self.user.id,
                         'name': f"{self.user.first_name} {self.user.last_name}",
-                    }
+                    },
                 }
+
+            # Phase 3 (failure path): cancel the session and request so nothing
+            # joinable or payable is left dangling.
+            session.status = Session.Status.CANCELLED
+            session.save(update_fields=['status'])
+
+            request.status = InstantRequest.Status.CANCELLED
+            request.save(update_fields=['status'])
+
+            return {
+                'success': False,
+                'payment_failed': True,
+                'student_id': student.id,
+                'subject': subject,
+                'message': charge_result.get('message', 'Payment failed. Please update your payment method and try again.'),
+            }
 
         except InstantRequest.DoesNotExist:
             return {'success': False, 'message': 'Request not found or already taken'}

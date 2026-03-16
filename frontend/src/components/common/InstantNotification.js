@@ -179,10 +179,10 @@ function InstantNotification() {
             }
           }, 5 * 60 * 1000);
         } else if (data.type === 'request_accepted') {
-          // If we accepted a request, dismiss all notifications and navigate
+          // If we accepted a request, dismiss all notifications and navigate to session detail
           setNotifications([]);
-          if (data.session?.meeting_link) {
-            window.open(data.session.meeting_link, '_blank');
+          if (data.session?.id) {
+            navigate(`/tutor/sessions/${data.session.id}`);
           }
         } else if (data.type === 'request_cancelled') {
           // Dismiss the notification for the cancelled request

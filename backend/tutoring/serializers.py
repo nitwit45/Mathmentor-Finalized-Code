@@ -11,6 +11,8 @@ from .models import (
     TutorAvailability,
     MATH_SUBJECTS,
     UK_GRADES,
+    InstantConfig,
+    Payment,
 )
 
 User = get_user_model()
@@ -32,16 +34,12 @@ class UserBasicSerializer(serializers.ModelSerializer):
         """Get profile image URL from user's profile (tutor or student)."""
         try:
             if hasattr(obj, 'tutor_profile') and obj.tutor_profile.profile_image:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.tutor_profile.profile_image.url)
+                # Return relative URL to avoid mixed-content issues when the frontend is served over HTTPS
                 return obj.tutor_profile.profile_image.url
             elif hasattr(obj, 'student_profile') and obj.student_profile.profile_image:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(obj.student_profile.profile_image.url)
+                # Return relative URL to avoid mixed-content issues when the frontend is served over HTTPS
                 return obj.student_profile.profile_image.url
-        except:
+        except Exception:
             pass
         return None
 
@@ -77,9 +75,7 @@ class TutorProfileSerializer(serializers.ModelSerializer):
 
     def get_profile_image_url(self, obj):
         if obj.profile_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.profile_image.url)
+            # Return relative URL so the browser uses the current (HTTPS) origin
             return obj.profile_image.url
         return None
 
@@ -132,9 +128,7 @@ class TutorProfilePublicSerializer(serializers.ModelSerializer):
 
     def get_profile_image_url(self, obj):
         if obj.profile_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.profile_image.url)
+            # Return relative URL so the browser uses the current (HTTPS) origin
             return obj.profile_image.url
         return None
 
@@ -169,9 +163,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 
     def get_profile_image_url(self, obj):
         if obj.profile_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.profile_image.url)
+            # Return relative URL so the browser uses the current (HTTPS) origin
             return obj.profile_image.url
         return None
 
@@ -341,4 +333,51 @@ class GradeChoiceSerializer(serializers.Serializer):
     key = serializers.CharField()
     label = serializers.CharField()
 
+
+class PaymentSerializer(serializers.ModelSerializer):
+    """Serializer for payment history records."""
+    payer = UserBasicSerializer(read_only=True)
+    recipient = UserBasicSerializer(read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    session_topic = serializers.CharField(source='session.topic', read_only=True)
+    session_duration = serializers.IntegerField(source='session.duration', read_only=True)
+    session_scheduled_time = serializers.DateTimeField(source='session.scheduled_time', read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'invoice_number', 'session_id', 'session_topic',
+            'session_duration', 'session_scheduled_time',
+            'payer', 'recipient', 'amount', 'stripe_payment_intent_id',
+            'status', 'status_display', 'paid_at', 'created_at',
+        ]
+        read_only_fields = fields
+
+
+class CalendarSessionSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for calendar view."""
+    tutor_name = serializers.SerializerMethodField()
+    student_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Session
+        fields = [
+            'id', 'scheduled_time', 'duration', 'topic', 'status',
+            'tutor_name', 'student_name', 'price',
+        ]
+
+    def get_tutor_name(self, obj):
+        return f"{obj.tutor.first_name} {obj.tutor.last_name}".strip() or obj.tutor.email
+
+    def get_student_name(self, obj):
+        return f"{obj.student.first_name} {obj.student.last_name}".strip() or obj.student.email
+
+
+class InstantConfigSerializer(serializers.ModelSerializer):
+    """Serializer for admin management of instant tutoring configuration."""
+
+    class Meta:
+        model = InstantConfig
+        fields = ["hourly_rate", "updated_at"]
+        read_only_fields = ["updated_at"]
 

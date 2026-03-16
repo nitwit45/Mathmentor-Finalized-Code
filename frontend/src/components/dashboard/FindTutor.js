@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { searchTutors, getChoices } from '../../services/api';
 import { HiStar, HiSearch } from 'react-icons/hi';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './FindTutor.css';
 
 function FindTutor() {
@@ -175,7 +176,11 @@ function FindTutor() {
                       {tutor.profile_image_url ? (
                         <img src={tutor.profile_image_url} alt={tutor.user.full_name} />
                       ) : (
-                        <span>{tutor.user.first_name?.[0]}{tutor.user.last_name?.[0]}</span>
+                        <DefaultAvatar
+                          firstName={tutor.user.first_name}
+                          lastName={tutor.user.last_name}
+                          size="large"
+                        />
                       )}
                     </div>
                     {tutor.is_available_for_instant && (

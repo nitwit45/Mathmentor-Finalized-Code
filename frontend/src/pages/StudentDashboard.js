@@ -1,8 +1,10 @@
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyProfile } from '../services/api';
-import { HiHome, HiSearch, HiLightningBolt, HiCalendar, HiChat, HiCog, HiLogout, HiCreditCard } from 'react-icons/hi';
+import { useUnreadMessagesCount } from '../hooks/useUnreadMessagesCount';
+import { HiHome, HiSearch, HiLightningBolt, HiCalendar, HiChat, HiCog, HiLogout, HiCreditCard, HiDocumentText } from 'react-icons/hi';
+import DefaultAvatar from '../components/common/DefaultAvatar';
 import './Dashboard.css';
 
 // Dashboard pages
@@ -17,6 +19,8 @@ import Conversation from '../components/dashboard/Conversation';
 import Settings from '../components/dashboard/Settings';
 import BookSession from '../components/booking/BookSession';
 import PaymentMethods from '../components/dashboard/PaymentMethods';
+import SessionCalendar from '../components/dashboard/SessionCalendar';
+import PaymentHistory from '../components/dashboard/PaymentHistory';
 
 function StudentDashboard() {
   const { user, logout } = useAuth();
@@ -24,6 +28,8 @@ function StudentDashboard() {
   const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { unreadCount, refresh } = useUnreadMessagesCount();
+  const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
     async function loadProfile() {
@@ -44,6 +50,15 @@ function StudentDashboard() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Refresh unread count when leaving Messages page
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = location.pathname;
+    if (prev.startsWith('/student/messages') && !location.pathname.startsWith('/student/messages')) {
+      refresh();
+    }
+  }, [location.pathname, refresh]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -101,9 +116,11 @@ function StudentDashboard() {
                 className="sidebar-profile-picture"
               />
             ) : (
-              <div className="sidebar-profile-placeholder">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
+              <DefaultAvatar
+                firstName={user?.first_name}
+                lastName={user?.last_name}
+                size="small"
+              />
             )}
             <p className="user-greeting">Hi, {user?.first_name || 'Student'}!</p>
           </div>
@@ -126,13 +143,28 @@ function StudentDashboard() {
             <span className="nav-icon"><HiCalendar /></span>
             <span>My Sessions</span>
           </NavLink>
+          <NavLink to="/student/calendar" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon"><HiCalendar /></span>
+            <span>Calendar</span>
+          </NavLink>
           <NavLink to="/student/messages" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon"><HiChat /></span>
-            <span>Messages</span>
+            <span className="nav-link-with-badge">
+              <span>Messages</span>
+              {unreadCount > 0 && (
+                <span className="nav-unread-badge" aria-label={`${unreadCount} unread messages`}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
           </NavLink>
           <NavLink to="/student/payment-methods" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon"><HiCreditCard /></span>
             <span>Payment Methods</span>
+          </NavLink>
+          <NavLink to="/student/payment-history" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon"><HiDocumentText /></span>
+            <span>Payment History</span>
           </NavLink>
           <NavLink to="/student/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon"><HiCog /></span>
@@ -161,6 +193,8 @@ function StudentDashboard() {
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:conversationId" element={<Conversation />} />
           <Route path="payment-methods" element={<PaymentMethods />} />
+          <Route path="calendar" element={<SessionCalendar />} />
+          <Route path="payment-history" element={<PaymentHistory />} />
           <Route path="settings" element={<Settings />} />
         </Routes>
       </main>

@@ -9,20 +9,8 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const checkAuth = useCallback(async () => {
-    // #region agent log
-    fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.js:11',message:'checkAuth called',data:{timestamp:new Date().toISOString()},sessionId:'debug-session',runId:'initial',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-
     try {
-      // #region agent log
-      fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.js:15',message:'calling getProfile',data:{},sessionId:'debug-session',runId:'initial',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       const response = await getProfile();
-
-      // #region agent log
-      fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.js:17',message:'getProfile response',data:{success:response.success,hasData:!!response.data},sessionId:'debug-session',runId:'initial',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
 
       if (response.success) {
         setUser(response.data);
@@ -32,10 +20,6 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      // #region agent log
-      fetch('http://localhost:7249/ingest/5ea09056-5083-454b-b85a-cdd71ab76e49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.js:22',message:'checkAuth error',data:{error:error.message},sessionId:'debug-session',runId:'initial',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -76,6 +60,7 @@ export function AuthProvider({ children }) {
     checkAuth,
     isProfileComplete: user?.is_profile_complete || false,
     userRole: user?.role || null,
+    isAdmin: user?.role === 'ADMIN' || false,
   };
 
   return (
@@ -94,5 +79,3 @@ export function useAuth() {
 }
 
 export default AuthContext;
-
-

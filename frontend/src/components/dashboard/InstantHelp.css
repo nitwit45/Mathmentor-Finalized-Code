@@ -189,6 +189,38 @@
   font-size: 18px;
 }
 
+/* Payment-failed state */
+.payment-failed-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.payment-failed-icon {
+  font-size: 64px;
+  color: #f87171;
+  margin-bottom: var(--spacing-md);
+}
+
+.payment-failed-state h2 {
+  color: #f87171;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.payment-failed-message {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xl) 0;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.payment-failed-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .instant-help-page {

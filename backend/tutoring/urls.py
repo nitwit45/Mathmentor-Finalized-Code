@@ -7,54 +7,48 @@ router.register(r'profile', views.ProfileViewSet, basename='profile')
 router.register(r'conversations', views.ConversationViewSet, basename='conversations')
 router.register(r'availability', views.TutorAvailabilityViewSet, basename='availability')
 
-session_viewset = views.SessionViewSet.as_view({
-    'get': 'list',
-})
-session_detail_viewset = views.SessionViewSet.as_view({
-    'get': 'retrieve',
-})
-session_create_booking = views.SessionViewSet.as_view({
-    'post': 'create_booking',
-})
-session_cancel = views.SessionViewSet.as_view({
-    'post': 'cancel',
-})
-session_update_status = views.SessionViewSet.as_view({
-    'post': 'update_status',
-})
-session_complete = views.SessionViewSet.as_view({
-    'post': 'complete',
-})
-session_end = views.SessionViewSet.as_view({
-    'post': 'end_session',
-})
-session_review = views.SessionViewSet.as_view({
-    'post': 'review',
-})
-session_jaas_token = views.SessionViewSet.as_view({
-    'get': 'jaas_token',
-})
+session_viewset = views.SessionViewSet.as_view({'get': 'list'})
+session_detail_viewset = views.SessionViewSet.as_view({'get': 'retrieve'})
+session_create_booking = views.SessionViewSet.as_view({'post': 'create_booking'})
+session_cancel = views.SessionViewSet.as_view({'post': 'cancel'})
+session_update_status = views.SessionViewSet.as_view({'post': 'update_status'})
+session_complete = views.SessionViewSet.as_view({'post': 'complete'})
+session_end = views.SessionViewSet.as_view({'post': 'end_session'})
+session_review = views.SessionViewSet.as_view({'post': 'review'})
+session_jaas_token = views.SessionViewSet.as_view({'get': 'jaas_token'})
+session_calendar = views.SessionViewSet.as_view({'get': 'calendar'})
+
+payment_list = views.PaymentViewSet.as_view({'get': 'list'})
+payment_detail = views.PaymentViewSet.as_view({'get': 'retrieve'})
 
 urlpatterns = [
     path('', include(router.urls)),
-    
-    # Session endpoints (explicit routing for actions)
+
+    # Session endpoints
     path('sessions/', session_viewset, name='session-list'),
-    path('sessions/<uuid:pk>/', session_detail_viewset, name='session-detail'),
+    path('sessions/calendar/', session_calendar, name='session-calendar'),
     path('sessions/create-booking/', session_create_booking, name='session-create-booking'),
+    path('sessions/<uuid:pk>/', session_detail_viewset, name='session-detail'),
     path('sessions/<uuid:pk>/cancel/', session_cancel, name='session-cancel'),
     path('sessions/<uuid:pk>/update-status/', session_update_status, name='session-update-status'),
     path('sessions/<uuid:pk>/complete/', session_complete, name='session-complete'),
     path('sessions/<uuid:pk>/end/', session_end, name='session-end'),
     path('sessions/<uuid:pk>/review/', session_review, name='session-review'),
     path('sessions/<uuid:pk>/jaas-token/', session_jaas_token, name='session-jaas-token'),
-    
+
     # Tutor endpoints
     path('tutors/', views.TutorListView.as_view(), name='tutor-list'),
     path('tutors/<int:id>/', views.TutorDetailView.as_view(), name='tutor-detail'),
     path('tutors/<int:tutor_id>/availability/', views.get_tutor_availability, name='tutor-availability'),
-    
-    # Stripe/Payment endpoints
+
+    # Instant (Uber-style) tutoring configuration
+    path('instant/config/', views.get_instant_config, name='instant-config'),
+
+    # Payment history
+    path('payments/', payment_list, name='payment-list'),
+    path('payments/<uuid:pk>/', payment_detail, name='payment-detail'),
+
+    # Stripe/Card endpoints
     path('stripe/config/', views.get_stripe_config, name='stripe-config'),
     path('stripe/webhook/', views.stripe_webhook, name='stripe-webhook'),
     path('payment-methods/', views.get_payment_methods, name='payment-methods'),

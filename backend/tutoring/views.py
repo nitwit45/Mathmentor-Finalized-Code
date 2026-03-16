@@ -22,6 +22,8 @@ from .models import (
     TutorAvailability,
     MATH_SUBJECTS,
     UK_GRADES,
+    InstantConfig,
+    Payment,
 )
 from .serializers import (
     TutorProfileSerializer,
@@ -34,8 +36,12 @@ from .serializers import (
     MessageSerializer,
     InstantRequestSerializer,
     TutorAvailabilitySerializer,
+    InstantConfigSerializer,
+    PaymentSerializer,
+    CalendarSessionSerializer,
 )
 from .jaas import generate_jaas_jwt, generate_room_name
+from .payments import get_or_create_stripe_customer
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -361,10 +367,6 @@ class SessionViewSet(viewsets.ViewSet):
             status=Session.Status.PENDING_TUTOR,
         )
 
-        # Generate meeting link
-        session.meeting_link = f"https://meet.jit.si/mathmentor-{session.id}"
-        session.save()
-
         return Response({
             'success': True,
             'data': {
@@ -392,7 +394,8 @@ class SessionViewSet(viewsets.ViewSet):
         session.status = Session.Status.CANCELLED
         session.save()
 
-        # TODO: Handle refund if payment was made
+        # Note: Refund handling for paid sessions can be added here via Stripe API
+        # (stripe.Refund.create) when payment_intent_id is stored on the session.
 
         return Response({
             'success': True,
@@ -637,6 +640,61 @@ class SessionViewSet(viewsets.ViewSet):
             }
         })
 
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Return sessions for a given month grouped by date."""
+        import calendar as cal
+        user = request.user
+
+        try:
+            month = int(request.query_params.get('month', timezone.now().month))
+            year = int(request.query_params.get('year', timezone.now().year))
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'message': 'Invalid month or year'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Clamp values
+        month = max(1, min(12, month))
+        _, days_in_month = cal.monthrange(year, month)
+
+        start_dt = timezone.datetime(year, month, 1, tzinfo=timezone.UTC)
+        end_dt = timezone.datetime(year, month, days_in_month, 23, 59, 59, tzinfo=timezone.UTC)
+
+        if user.role == 'TUTOR':
+            queryset = Session.objects.filter(tutor=user)
+        else:
+            queryset = Session.objects.filter(student=user)
+
+        queryset = queryset.filter(
+            scheduled_time__gte=start_dt,
+            scheduled_time__lte=end_dt,
+        ).select_related('tutor', 'student').order_by('scheduled_time')
+
+        serializer = CalendarSessionSerializer(queryset, many=True)
+
+        # Group sessions by date string (YYYY-MM-DD)
+        grouped = {}
+        for session_data in serializer.data:
+            dt_str = session_data['scheduled_time']
+            # Extract date portion
+            date_key = dt_str[:10]
+            if date_key not in grouped:
+                grouped[date_key] = []
+            grouped[date_key].append(session_data)
+
+        return Response({
+            'success': True,
+            'data': {
+                'month': month,
+                'year': year,
+                'days_in_month': days_in_month,
+                'sessions_by_date': grouped,
+                'total_sessions': queryset.count(),
+            }
+        })
+
 
 # ==================== Messaging Views ====================
 
@@ -768,6 +826,37 @@ class ConversationViewSet(viewsets.ViewSet):
         conversation.updated_at = timezone.now()
         conversation.save()
 
+        # Broadcast message via channel layer so WebSocket users receive it
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        room_group_name = f'chat_{conversation.id}'
+        
+        try:
+            async_to_sync(channel_layer.group_send)(
+                room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': {
+                        'id': str(message.id),
+                        'content': message.content,
+                        'sender_id': message.sender.id,
+                        'sender_name': f"{message.sender.first_name} {message.sender.last_name}",
+                        'created_at': message.created_at.isoformat(),
+                        'is_read': message.is_read,
+                        'delivered_at': None,
+                        'read_at': None,
+                        'status': 'sent',
+                    }
+                }
+            )
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to broadcast message via channel layer: {e}")
+
         serializer = MessageSerializer(message)
         return Response({
             'success': True,
@@ -776,21 +865,6 @@ class ConversationViewSet(viewsets.ViewSet):
 
 
 # ==================== Stripe Payment ====================
-
-def get_or_create_stripe_customer(user):
-    """Get or create a Stripe customer for the user."""
-    if user.stripe_customer_id:
-        return user.stripe_customer_id
-    
-    customer = stripe.Customer.create(
-        email=user.email,
-        name=f"{user.first_name} {user.last_name}".strip() or user.email,
-        metadata={'user_id': str(user.id)}
-    )
-    user.stripe_customer_id = customer.id
-    user.save()
-    return customer.id
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1050,9 +1124,21 @@ def pay_with_saved_card(request, session_id):
         if payment_intent.status == 'succeeded':
             session.status = Session.Status.SCHEDULED
             session.stripe_payment_intent_id = payment_intent.id
-            session.generate_meeting_link()
             session.save()
-            
+
+            Payment.objects.get_or_create(
+                session=session,
+                defaults={
+                    'payer': user,
+                    'recipient': session.tutor,
+                    'amount': session.price,
+                    'stripe_payment_intent_id': payment_intent.id,
+                    'status': Payment.Status.SUCCEEDED,
+                    'invoice_number': Payment.generate_invoice_number(),
+                    'paid_at': timezone.now(),
+                }
+            )
+
             return Response({
                 'success': True,
                 'message': 'Payment successful! Session is now scheduled.',
@@ -1127,11 +1213,24 @@ def create_checkout_session(request, session_id):
     # Check if Stripe is configured
     if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.startswith('sk_test_placeholder'):
         # For demo/test mode without real Stripe keys, simulate payment success
+        demo_intent_id = 'demo_payment_' + str(session.id)
         session.status = Session.Status.SCHEDULED
-        session.stripe_payment_intent_id = 'demo_payment_' + str(session.id)
-        session.generate_meeting_link()
+        session.stripe_payment_intent_id = demo_intent_id
         session.save()
-        
+
+        Payment.objects.get_or_create(
+            session=session,
+            defaults={
+                'payer': user,
+                'recipient': session.tutor,
+                'amount': session.price,
+                'stripe_payment_intent_id': demo_intent_id,
+                'status': Payment.Status.SUCCEEDED,
+                'invoice_number': Payment.generate_invoice_number(),
+                'paid_at': timezone.now(),
+            }
+        )
+
         return Response({
             'success': True,
             'demo_mode': True,
@@ -1216,15 +1315,27 @@ def stripe_webhook(request):
     if event['type'] == 'checkout.session.completed':
         checkout_session = event['data']['object']
         session_id = checkout_session['metadata'].get('session_id')
-        
+
         if session_id:
             try:
-                session = Session.objects.get(id=session_id)
+                session = Session.objects.select_related('student', 'tutor').get(id=session_id)
                 session.status = Session.Status.SCHEDULED
                 session.stripe_payment_intent_id = checkout_session.get('payment_intent', '')
                 session.stripe_checkout_session_id = checkout_session.get('id', '')
-                session.generate_meeting_link()
                 session.save()
+
+                Payment.objects.get_or_create(
+                    session=session,
+                    defaults={
+                        'payer': session.student,
+                        'recipient': session.tutor,
+                        'amount': session.price,
+                        'stripe_payment_intent_id': checkout_session.get('payment_intent', ''),
+                        'status': Payment.Status.SUCCEEDED,
+                        'invoice_number': Payment.generate_invoice_number(),
+                        'paid_at': timezone.now(),
+                    }
+                )
             except Session.DoesNotExist:
                 pass
 
@@ -1279,4 +1390,75 @@ def get_tutor_availability(request, tutor_id):
     return Response({
         'success': True,
         'data': serializer.data
+    })
+
+
+class PaymentViewSet(viewsets.ViewSet):
+    """ViewSet for payment history."""
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        """List the user's payment history."""
+        user = request.user
+
+        if user.role == 'STUDENT':
+            queryset = Payment.objects.filter(payer=user)
+        else:
+            queryset = Payment.objects.filter(recipient=user)
+
+        # Optional date range filters
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        if date_from:
+            queryset = queryset.filter(paid_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(paid_at__date__lte=date_to)
+
+        queryset = queryset.select_related(
+            'session', 'payer', 'recipient'
+        ).order_by('-paid_at')
+
+        serializer = PaymentSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+    def retrieve(self, request, pk=None):
+        """Get a single payment record (invoice detail)."""
+        user = request.user
+        try:
+            payment = Payment.objects.select_related(
+                'session', 'payer', 'recipient'
+            ).get(
+                Q(payer=user) | Q(recipient=user),
+                id=pk
+            )
+        except Payment.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Payment not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PaymentSerializer(payment)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_instant_config(request):
+    """
+    Get read-only instant tutoring configuration for students/tutors.
+    """
+    config = InstantConfig.objects.first()
+    if not config:
+        # Default fallback if admin hasn't configured yet
+        config = InstantConfig(hourly_rate=Decimal("25.00"))
+    serializer = InstantConfigSerializer(config)
+    return Response({
+        "success": True,
+        "data": serializer.data,
     })

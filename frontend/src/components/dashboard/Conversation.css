@@ -222,6 +222,19 @@
   vertical-align: middle;
 }
 
+.message-status-icon.pending,
+.message-status-icon.failed {
+  height: 16px;
+}
+
+.message-status-icon.pending {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.message-status-icon.failed {
+  color: #ef4444;
+}
+
 .message-status-icon.sent path,
 .message-status-icon.delivered path {
   fill: #8696a0;
@@ -239,6 +252,14 @@
 
 .message.sent .message-status-icon.read path {
   fill: #53bdeb;
+}
+
+.message.sent .message-status-icon.pending {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.message.sent .message-status-icon.failed {
+  color: #fca5a5;
 }
 
 /* Input form */

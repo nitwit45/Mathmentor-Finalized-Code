@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTutorProfile, createBooking, getChoices } from '../../services/api';
 import { HiCheck, HiMail } from 'react-icons/hi';
 import TimePicker from '../common/TimePicker';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './BookSession.css';
 
 function BookSession() {
@@ -227,7 +228,11 @@ function BookSession() {
                 {tutor.profile_image_url ? (
                   <img src={tutor.profile_image_url} alt={tutor.user.full_name} />
                 ) : (
-                  <span>{tutor.user.first_name?.[0]}{tutor.user.last_name?.[0]}</span>
+                  <DefaultAvatar
+                    firstName={tutor.user.first_name}
+                    lastName={tutor.user.last_name}
+                    size="small"
+                  />
                 )}
               </div>
               <div>

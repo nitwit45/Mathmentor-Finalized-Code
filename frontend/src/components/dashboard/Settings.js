@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getMyProfile, updateMyProfile, updateMyProfileWithImage, getChoices } from '../../services/api';
+import DefaultAvatar from '../common/DefaultAvatar';
 import './Settings.css';
 
 function Settings() {
@@ -190,9 +191,11 @@ function Settings() {
                 className="profile-image-preview"
               />
             ) : (
-              <div className="profile-picture-placeholder">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
+              <DefaultAvatar
+                firstName={user?.first_name}
+                lastName={user?.last_name}
+                size="default"
+              />
             )}
           </div>
 

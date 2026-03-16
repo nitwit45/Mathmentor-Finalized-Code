@@ -38,6 +38,7 @@ class User(AbstractUser):
         TUTOR = 'TUTOR', 'Tutor'
         STUDENT = 'STUDENT', 'Student'
         PARENT = 'PARENT', 'Parent'
+        ADMIN = 'ADMIN', 'Admin'
     
     username = None  # Remove username field
     email = models.EmailField(unique=True)

@@ -1,23 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
-import { getMyProfile, updateMyProfile, createInstantWebSocket } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import { getMyProfile, updateMyProfile, getInstantConfig, createInstantWebSocket } from '../../services/api';
 import { HiLightningBolt, HiVideoCamera, HiCheck, HiX, HiEye } from 'react-icons/hi';
 import './InstantRequests.css';
 
 function InstantRequests() {
+  const navigate = useNavigate();
   const [isAvailable, setIsAvailable] = useState(false);
   const [requests, setRequests] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unavailableRequests, setUnavailableRequests] = useState({}); // Track requests that are no longer available
+  const [instantRate, setInstantRate] = useState(null);
   const wsRef = useRef(null);
   const timeoutRefs = useRef({}); // Track timeouts to prevent multiple for same request
 
   useEffect(() => {
     async function loadProfile() {
       try {
-        const response = await getMyProfile();
-        if (response.success) {
-          setIsAvailable(response.data.is_available_for_instant || false);
+        const [profileRes, configRes] = await Promise.all([
+          getMyProfile(),
+          getInstantConfig().catch(() => null),
+        ]);
+
+        if (profileRes.success) {
+          setIsAvailable(profileRes.data.is_available_for_instant || false);
+        }
+
+        if (configRes?.success) {
+          setInstantRate(configRes.data.hourly_rate);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -49,12 +60,12 @@ function InstantRequests() {
       const ws = createInstantWebSocket();
 
       ws.onopen = () => {
-        console.log('Instant WebSocket connected');
+        if (process.env.NODE_ENV === 'development') console.log('Instant WebSocket connected');
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received:', data);
+        if (process.env.NODE_ENV === 'development') console.log('Received:', data);
 
 
         if (data.type === 'instant_request') {
@@ -155,8 +166,8 @@ function InstantRequests() {
   };
 
   const handleJoinSession = () => {
-    if (activeSession?.meeting_link) {
-      window.open(activeSession.meeting_link, '_blank');
+    if (activeSession?.id) {
+      navigate(`/tutor/sessions/${activeSession.id}`);
     }
   };
 
@@ -189,6 +200,11 @@ function InstantRequests() {
               : 'Toggle to start receiving instant requests'
             }
           </p>
+          {instantRate && (
+            <p className="instant-rate-note">
+              You will be paid <strong>£{Number(instantRate).toFixed(2)}</strong> per hour for instant sessions.
+            </p>
+          )}
         </div>
         <button 
           onClick={handleToggleAvailability}

@@ -2,6 +2,38 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { HiExclamation } from 'react-icons/hi';
 import './VideoRoom.css';
 
+// Module-level tracking (outside component)
+let scriptLoadPromise = null;
+const initializingRooms = new Set();
+
+// Load JaaS external API script (module-level function)
+const loadJitsiScript = (appIdValue) => {
+  if (window.JitsiMeetExternalAPI) {
+    return Promise.resolve();
+  }
+
+  if (scriptLoadPromise) {
+    return scriptLoadPromise;
+  }
+
+  scriptLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://8x8.vc/${appIdValue}/external_api.js`;
+    script.async = true;
+    script.onload = () => {
+      scriptLoadPromise = null;
+      resolve();
+    };
+    script.onerror = () => {
+      scriptLoadPromise = null;
+      reject(new Error('Failed to load JaaS script'));
+    };
+    document.head.appendChild(script);
+  });
+
+  return scriptLoadPromise;
+};
+
 /**
  * VideoRoom component - Embeds JaaS (Jitsi) video call within the app
  * 
@@ -27,45 +59,19 @@ function VideoRoom({
 }) {
   const containerRef = useRef(null);
   const apiRef = useRef(null);
-  const initializingRef = useRef(false);
-  const loadingTimeoutRef = useRef(null);
-  const onCloseRef = useRef(onClose);
-  const onParticipantJoinedRef = useRef(onParticipantJoined);
+  const mountIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Keep callback refs up to date
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    onParticipantJoinedRef.current = onParticipantJoined;
-  }, [onParticipantJoined]);
-
-  // Load JaaS external API script
-  const loadJitsiScript = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      // Check if already loaded
-      if (window.JitsiMeetExternalAPI) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://8x8.vc/${appId}/external_api.js`;
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error('Failed to load JaaS script'));
-      document.head.appendChild(script);
-    });
-  }, [appId]);
+  const [useMock, setUseMock] = useState(false);
 
   // Initialize the Jitsi iframe
-  const initializeJitsi = useCallback(async () => {
-    // Guard against double initialization (React StrictMode)
-    if (initializingRef.current) {
-      console.log('[VideoRoom] Already initializing, skipping...');
+  const initializeJitsi = async (currentMountId) => {
+    // Debounce for StrictMode
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if mount is still current
+    if (mountIdRef.current !== currentMountId) {
+      if (process.env.NODE_ENV === 'development') console.log('[VideoRoom] Mount ID changed, aborting stale init');
       return;
     }
 
@@ -73,28 +79,36 @@ function VideoRoom({
       return;
     }
 
-    initializingRef.current = true;
+    // Check if already initializing this room
+    if (initializingRooms.has(roomName)) {
+      if (process.env.NODE_ENV === 'development') console.log('[VideoRoom] Already initializing this room');
+      return;
+    }
+
+    initializingRooms.add(roomName);
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Clear any existing timeout
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
+      // Check if we're in an embedded environment (like Cursor IDE)
+      const isEmbedded = window !== window.top;
+      const hasCursorUA = window.navigator.userAgent.includes('Cursor');
+      const hasCursorReferrer = document.referrer.includes('cursor.sh') || document.referrer.includes('cursor');
+
+      // Only use mock mode in Cursor IDE or when explicitly detected as embedded development
+      if ((isEmbedded || hasCursorUA || hasCursorReferrer) && process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development') console.log('[VideoRoom] Detected embedded development environment, using mock video room');
+        setUseMock(true);
+        setIsLoading(false);
+        return;
       }
 
-      await loadJitsiScript();
+      await loadJitsiScript(appId);
 
       // Clean up any existing instance
       if (apiRef.current) {
-        try {
-          apiRef.current.dispose();
-        } catch (err) {
-          console.warn('[VideoRoom] Error disposing previous instance:', err);
-        }
-        apiRef.current = null;
+        apiRef.current.dispose();
       }
 
       const options = {
@@ -103,6 +117,9 @@ function VideoRoom({
         jwt: jwt,
         width: '100%',
         height: '100%',
+        iframeAttributes: {
+          allow: 'camera; microphone; display-capture; autoplay; clipboard-write; fullscreen'
+        },
         configOverwrite: {
           // Skip prejoin screen - go directly to meeting
           prejoinPageEnabled: false,
@@ -152,157 +169,119 @@ function VideoRoom({
         },
       };
 
-      // Log the configuration for debugging
-      console.log('[VideoRoom] Initializing with config:', {
-        domain,
-        roomName,
-        jwtLength: jwt?.length,
-        jwtPreview: jwt?.substring(0, 50) + '...',
-        appId,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[VideoRoom] Initializing with config:', {
+          domain,
+          roomName,
+          jwtLength: jwt?.length,
+          appId,
+        });
+      }
 
       apiRef.current = new window.JitsiMeetExternalAPI(domain, options);
 
-      // Helper to clear loading state
-      const clearLoadingState = () => {
-        setIsLoading(false);
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-          loadingTimeoutRef.current = null;
+      if (process.env.NODE_ENV === 'development') {
+        setTimeout(() => {
+          const iframe = apiRef.current?.getIFrame();
+        if (iframe && process.env.NODE_ENV === 'development') {
+          console.log('[VideoRoom] Iframe created');
+        } else if (!iframe && process.env.NODE_ENV === 'development') {
+          console.warn('[VideoRoom] Iframe not found after creation');
         }
-      };
+        }, 1000);
+      }
 
       // Set up event listeners
-      // Primary event - fires when local user joins conference
-      apiRef.current.addListener('videoConferenceJoined', (data) => {
-        console.log('[VideoRoom] Conference joined:', data);
-        clearLoadingState();
+      apiRef.current.addListener('videoConferenceJoined', () => {
+        setIsLoading(false);
       });
 
-      // Fallback event - also check when participants join (including local user)
-      apiRef.current.addListener('participantJoined', (participant) => {
-        console.log('[VideoRoom] Participant joined:', participant);
-        
-        // Clear loading when any participant joins (meeting is active)
-        setIsLoading((currentLoading) => {
-          if (currentLoading) {
-            console.log('[VideoRoom] Clearing loading via participantJoined');
-            clearLoadingState();
-            return false;
-          }
-          return currentLoading;
-        });
-        
-        // Notify parent component
-        if (onParticipantJoinedRef.current) {
-          onParticipantJoinedRef.current(participant);
+      apiRef.current.addListener('videoConferenceLeft', () => {
+        if (onClose) {
+          onClose();
         }
       });
 
-      // Additional fallback - iframe ready event
-      apiRef.current.addListener('videoConferenceReady', () => {
-        console.log('[VideoRoom] Video conference ready');
-        clearLoadingState();
-      });
-
-      // Cleanup events
-      apiRef.current.addListener('videoConferenceLeft', () => {
-        console.log('[VideoRoom] Conference left');
-        if (onCloseRef.current) {
-          onCloseRef.current();
+      apiRef.current.addListener('participantJoined', (participant) => {
+        if (onParticipantJoined) {
+          onParticipantJoined(participant);
         }
       });
 
       apiRef.current.addListener('readyToClose', () => {
-        console.log('[VideoRoom] Ready to close');
-        if (onCloseRef.current) {
-          onCloseRef.current();
+        if (onClose) {
+          onClose();
         }
       });
 
-      // Error and authentication listeners
+      apiRef.current.addListener('browserSupport', () => {});
+
+      // Authentication and connection error listeners
       apiRef.current.addListener('passwordRequired', () => {
         console.error('[VideoRoom] Password required - JWT may be invalid');
         setError('Authentication failed. Please try again.');
-        clearLoadingState();
+        setIsLoading(false);
       });
 
-      apiRef.current.addListener('errorOccurred', (errorEvent) => {
-        console.error('[VideoRoom] Error occurred:', errorEvent);
-        setError(errorEvent?.message || 'An error occurred in the video session');
-        clearLoadingState();
+      apiRef.current.addListener('suspendDetected', () => {});
+
+      // Handle errors
+      apiRef.current.addListener('errorOccurred', (error) => {
+        console.error('[VideoRoom] Error occurred:', error);
+
+        // Check for WebRTC support error
+        if (error?.message?.includes('WebRTC') || error?.name === 'browser-support') {
+           setError('WebRTC video is not supported in this embedded environment. Please open the application in a separate browser window to use video functionality.');
+        } else {
+           setError(error?.message || 'An error occurred in the video session');
+        }
+        setIsLoading(false);
       });
 
-      apiRef.current.addListener('connectionFailed', (errorEvent) => {
-        console.error('[VideoRoom] Connection failed:', errorEvent);
-        setError('Connection failed. Please check your internet and try again.');
-        clearLoadingState();
-      });
+      // Add a fallback timeout for when Jitsi fails to load properly
+      setTimeout(() => {
+        if (!apiRef.current) {
+          if (process.env.NODE_ENV === 'development') console.warn('[VideoRoom] Jitsi API never initialized');
+          setError('Video functionality is not available in this environment. Please open the application in a full browser window.');
+          setIsLoading(false);
+        }
+      }, 3000);
 
-      apiRef.current.addListener('conferenceError', (errorEvent) => {
-        console.error('[VideoRoom] Conference error:', errorEvent);
-        setError('Unable to join conference. Please try again.');
-        clearLoadingState();
-      });
+      apiRef.current.addListener('log', () => {});
 
-      // Debug listeners
-      apiRef.current.addListener('suspendDetected', () => {
-        console.log('[VideoRoom] Suspend detected');
-      });
-
-      apiRef.current.addListener('browserSupport', () => {
-        console.log('[VideoRoom] Browser support check passed');
-      });
-
-      // Timeout fallback - if still loading after 15 seconds, force clear
-      // Use functional state update to avoid stale closure
-      loadingTimeoutRef.current = setTimeout(() => {
-        console.log('[VideoRoom] Timeout reached, checking loading state...');
-        setIsLoading((currentLoading) => {
-          if (currentLoading && apiRef.current) {
-            console.log('[VideoRoom] Timeout - forcing loading state to false');
-            return false;
-          }
-          return currentLoading;
-        });
+      // Timeout fallback - if still loading after 15 seconds, something's wrong
+      setTimeout(() => {
+        if (isLoading && apiRef.current) {
+          setIsLoading(false);
+        }
       }, 15000);
 
     } catch (err) {
-      console.error('[VideoRoom] Failed to initialize video room:', err);
+      console.error('Failed to initialize video room:', err);
       setError(err.message || 'Failed to start video session');
       setIsLoading(false);
-      initializingRef.current = false;
+    } finally {
+      initializingRooms.delete(roomName);
     }
-  }, [jwt, roomName, domain, sessionInfo?.topic, loadJitsiScript]);
+  };
 
   // Initialize on mount
   useEffect(() => {
-    initializeJitsi();
+    const currentMountId = ++mountIdRef.current;
+    initializeJitsi(currentMountId);
 
     // Cleanup on unmount
     return () => {
-      console.log('[VideoRoom] Cleaning up...');
-      
-      // Clear loading timeout
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-
-      // Dispose Jitsi API instance
       if (apiRef.current) {
         try {
           apiRef.current.dispose();
-        } catch (err) {
-          console.warn('[VideoRoom] Error during cleanup:', err);
+        } catch (e) {
+          if (process.env.NODE_ENV === 'development') console.warn('[VideoRoom] Error during dispose:', e);
         }
         apiRef.current = null;
       }
-
-      // Reset initialization flag
-      initializingRef.current = false;
     };
-  }, [initializeJitsi]);
+  }, [jwt, roomName, domain, appId, userInfo, sessionInfo, onClose, onParticipantJoined]);
 
   if (error) {
     return (
@@ -319,6 +298,35 @@ function VideoRoom({
     );
   }
 
+  // Mock video room for development
+  if (useMock) {
+    return (
+      <div className="video-room-wrapper">
+        <div className="mock-video-room">
+          <div className="mock-video-header">
+            <h2>Video Session (Mock Mode)</h2>
+            <p>This is a development mock of the video room.</p>
+            <p>Real video functionality requires opening in a full browser window.</p>
+          </div>
+          <div className="mock-video-content">
+            <div className="mock-video-placeholder">
+              <div className="mock-camera">
+                <div className="mock-camera-icon">📹</div>
+                <p>Camera: {userInfo?.name || 'Participant'}</p>
+              </div>
+              <div className="mock-controls">
+                <button className="mock-btn">🎤 Mute</button>
+                <button className="mock-btn">📹 Camera</button>
+                <button className="mock-btn">📺 Share Screen</button>
+                <button className="mock-btn" onClick={onClose}>❌ End Call</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="video-room-wrapper">
       {isLoading && (
@@ -328,8 +336,8 @@ function VideoRoom({
           <p className="loading-topic">{sessionInfo?.topic}</p>
         </div>
       )}
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         className={`video-room-container ${isLoading ? 'hidden' : ''}`}
       />
     </div>
