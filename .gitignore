@@ -22,4 +22,5 @@ frontend/.cache/
 # IDE / OS
 .vscode/
 .idea/
+.cursor/
 .DS_Store
