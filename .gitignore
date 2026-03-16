@@ -1,5 +1,4 @@
 # Sensitive / generated
-.env
 .env.backup
 .env.*.local
 certs/
@@ -24,3 +23,5 @@ frontend/.cache/
 .idea/
 .cursor/
 .DS_Store
+config.bat
+node_modules
